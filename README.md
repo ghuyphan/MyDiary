@@ -1,9 +1,11 @@
 # MyDiary
 
-## Responsive web version
+## Responsive Web Version
 
-This repository now also includes a React/Vite web adaptation of the original
-Android application. The Android project remains available under `app/`.
+This repository contains a React/Vite web adaptation of the original Android application. The Android project remains available under `app/`.
+
+### Credits & Acknowledgments
+This web port is based on the original **MyDiary** Android application created by **[DaxiaK](https://github.com/DaxiaK)**. You can find the original repository at [github.com/DaxiaK/MyDiary](https://github.com/DaxiaK/MyDiary).
 
 ```bash
 npm install
@@ -171,4 +173,3 @@ I should focus the coding again.
 
 So if you send some duplicate question for me , forgive me I will ignore it at sometimes. 
 Most question you can find it in "Functionality".
-# MyDiary
