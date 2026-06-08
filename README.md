@@ -1,4 +1,19 @@
-#  MyDiary
+# MyDiary
+
+## Responsive web version
+
+This repository now also includes a React/Vite web adaptation of the original
+Android application. The Android project remains available under `app/`.
+
+```bash
+npm install
+npm run dev
+```
+
+Create a production build with `npm run build`. The web version includes the
+original Taki and Mitsuha themes, topics, diary entries, calendar, editor,
+memos, contacts, local persistence, JSON backup/restore, and the complete
+original image asset archive. Its layout adapts for desktop, tablet, and mobile.
 
 ## Summary
 
@@ -156,4 +171,4 @@ I should focus the coding again.
 
 So if you send some duplicate question for me , forgive me I will ignore it at sometimes. 
 Most question you can find it in "Functionality".
-
+# MyDiary
