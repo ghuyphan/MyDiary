@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const A = import.meta.env.BASE_URL + "assets/icons/";
 const THEMES = {
@@ -232,6 +232,29 @@ function App() {
   const [splashVisible, setSplashVisible] = useState(true);
   const [splashLeaving, setSplashLeaving] = useState(false);
   const [screen, setScreen] = useState("home");
+  const [prevScreen, setPrevScreen] = useState(null);
+  const [transDir, setTransDir] = useState("forward"); // "forward" | "back"
+  const [transitioning, setTransitioning] = useState(false);
+
+  const animatedSetScreen = useCallback((next, direction = "forward") => {
+    if (next === screen) return;
+    setPrevScreen(screen);
+    setTransDir(direction);
+    setTransitioning(true);
+    setScreen(next);
+    // After the CSS animation ends, clean up
+    window.setTimeout(() => {
+      setTransitioning(false);
+      setPrevScreen(null);
+    }, 320);
+  }, [screen]);
+
+  const goHome = useCallback(() => animatedSetScreen("home", "back"), [animatedSetScreen]);
+
+  // Swipe-from-left-edge to go back on mobile
+  const goHomeRef = useRef(null);
+  goHomeRef.current = screen !== "home" ? goHome : null;
+  useSwipeBack(goHomeRef);
   const [topic, setTopic] = useState(null);
   const [diaryTab, setDiaryTab] = useState("entries");
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -256,7 +279,7 @@ function App() {
 
   const openTopic = (item) => {
     setTopic(item);
-    setScreen(item.type);
+    animatedSetScreen(item.type, "forward");
     if (item.type === "diary") setDiaryTab("entries");
   };
 
@@ -310,75 +333,111 @@ function App() {
           />
         ) : (
           <>
-            {screen === "home" && (
-              <Home
-                data={data}
-                setData={setData}
-                openTopic={openTopic}
-                openSettings={() => setSettingsOpen(true)}
-                editMode={editMode}
-                setEditMode={setEditMode}
-                getTopicCount={getTopicCount}
-                t={t}
-              />
-            )}
-            {screen === "diary" && (
-              <Diary
-                data={data}
-                setData={setData}
-                title={topic?.title || "DIARY"}
-                tab={diaryTab}
-                setTab={setDiaryTab}
-                selected={selectedEntry}
-                setSelected={setSelectedEntry}
-                goHome={() => setScreen("home")}
-                t={t}
-                currentLang={currentLang}
-              />
-            )}
-            {screen === "memo" && (
-              <Memo
-                data={data}
-                setData={setData}
-                topicId={topic?.id}
-                title={topic?.title || "禁止事項 Ver.5"}
-                goHome={() => setScreen("home")}
-                t={t}
-              />
-            )}
-            {screen === "contacts" && (
-              <Contacts
-                data={data}
-                setData={setData}
-                title={topic?.title || "Contacts"}
-                goHome={() => setScreen("home")}
-                t={t}
-              />
-            )}
-            {screen === "settings" && (
-              <Settings
-                data={data}
-                setData={setData}
-                goHome={() => setScreen("home")}
-                openAbout={() => setScreen("about")}
-                onToggleLock={() => {
-                  if (data.locked) {
-                    setSecurityMode("remove");
-                  } else {
-                    setSecurityMode("create");
-                  }
-                }}
-                t={t}
-              />
-            )}
-            {screen === "about" && <About goHome={() => setScreen("home")} t={t} />}
-            
+            {/* --- Animated screen container --- */}
+            {(() => {
+              const screensToRender = [screen];
+              if (transitioning && prevScreen && prevScreen !== screen) {
+                screensToRender.push(prevScreen);
+              }
+
+              const getAnimClass = (s) => {
+                if (!transitioning) return "screen-enter-done";
+                if (s === screen) {
+                  // incoming screen
+                  return transDir === "forward" ? "screen-enter-forward" : "screen-enter-back";
+                }
+                // outgoing screen
+                return transDir === "forward" ? "screen-exit-forward" : "screen-exit-back";
+              };
+
+              const renderScreen = (s) => {
+                switch (s) {
+                  case "home":
+                    return (
+                      <Home
+                        data={data}
+                        setData={setData}
+                        openTopic={openTopic}
+                        openSettings={() => setSettingsOpen(true)}
+                        editMode={editMode}
+                        setEditMode={setEditMode}
+                        getTopicCount={getTopicCount}
+                        t={t}
+                      />
+                    );
+                  case "diary":
+                    return (
+                      <Diary
+                        data={data}
+                        setData={setData}
+                        title={topic?.title || "DIARY"}
+                        tab={diaryTab}
+                        setTab={setDiaryTab}
+                        selected={selectedEntry}
+                        setSelected={setSelectedEntry}
+                        goHome={goHome}
+                        t={t}
+                        currentLang={currentLang}
+                      />
+                    );
+                  case "memo":
+                    return (
+                      <Memo
+                        data={data}
+                        setData={setData}
+                        topicId={topic?.id}
+                        title={topic?.title || "禁止事項 Ver.5"}
+                        goHome={goHome}
+                        t={t}
+                      />
+                    );
+                  case "contacts":
+                    return (
+                      <Contacts
+                        data={data}
+                        setData={setData}
+                        title={topic?.title || "Contacts"}
+                        goHome={goHome}
+                        t={t}
+                      />
+                    );
+                  case "settings":
+                    return (
+                      <Settings
+                        data={data}
+                        setData={setData}
+                        goHome={goHome}
+                        openAbout={() => animatedSetScreen("about", "forward")}
+                        onToggleLock={() => {
+                          if (data.locked) {
+                            setSecurityMode("remove");
+                          } else {
+                            setSecurityMode("create");
+                          }
+                        }}
+                        t={t}
+                      />
+                    );
+                  case "about":
+                    return <About goHome={goHome} t={t} />;
+                  default:
+                    return null;
+                }
+              };
+
+              return screensToRender.map((s) => (
+                <div key={s} className={`screen-transition-wrapper ${getAnimClass(s)}`}>
+                  {renderScreen(s)}
+                </div>
+              ));
+            })()}
+
             {settingsOpen && (
               <QuickSettings
                 data={data}
                 setData={setData}
                 close={() => setSettingsOpen(false)}
-                open={(next) => { setScreen(next); setSettingsOpen(false); }}
+                open={(next) => { animatedSetScreen(next, "forward"); setSettingsOpen(false); }}
                 onAddTopic={() => { setAddingTopic(true); setSettingsOpen(false); }}
                 onToggleLock={() => {
                   if (data.locked) {
@@ -447,9 +506,53 @@ function SplashScreen({ leaving }) {
   return (
     <div className={`splash-screen ${leaving ? "leaving" : ""}`} aria-label="MyDiary is loading">
       <img src={`${A}iv_init_logo.png`} alt="MyDiary" />
-      <span className="splash-loader" aria-hidden="true" />
+      <img className="splash-loader" src={`${A}ic_photo_overview_loading.png`} alt="" aria-hidden="true" />
     </div>
   );
+}
+
+/** Detects swipe-from-left-edge gesture on touch devices and fires the callback stored in the ref. */
+function useSwipeBack(callbackRef) {
+  useEffect(() => {
+    const EDGE_THRESHOLD = 30;   // px from left edge to start tracking
+    const MIN_DISTANCE = 60;     // min horizontal travel to trigger
+    const MAX_Y_DRIFT = 80;      // max vertical drift allowed
+    let tracking = false;
+    let startX = 0;
+    let startY = 0;
+
+    const onTouchStart = (e) => {
+      if (!callbackRef.current) return;
+      const touch = e.touches[0];
+      if (touch.clientX <= EDGE_THRESHOLD) {
+        tracking = true;
+        startX = touch.clientX;
+        startY = touch.clientY;
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      if (!tracking) return;
+      tracking = false;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = Math.abs(touch.clientY - startY);
+      if (dx >= MIN_DISTANCE && dy <= MAX_Y_DRIFT && callbackRef.current) {
+        callbackRef.current();
+      }
+    };
+
+    const onTouchCancel = () => { tracking = false; };
+
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchCancel, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [callbackRef]);
 }
 
 function StatusBar({ locked }) {
@@ -641,7 +744,7 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
         <span className="profile-name">{data.userName}</span>
       </button>
       <section className="topic-list">
-        {topics.map((item) => (
+        {topics.map((item, idx) => (
           <TopicRow
             key={item.id}
             item={item}
@@ -650,6 +753,7 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
             editMode={editMode}
             onDelete={handleDeleteTopic}
             onRename={handleRenameTopic}
+            index={idx}
           />
         ))}
       </section>
@@ -667,10 +771,10 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
   );
 }
 
-function TopicRow({ item, onClick, count, editMode, onDelete, onRename }) {
+function TopicRow({ item, onClick, count, editMode, onDelete, onRename, index = 0 }) {
   const icon = item.type === "diary" ? "ic_topic_diary.png" : item.type === "contacts" ? "ic_topic_contacts.png" : "ic_topic_memo.png";
   return (
-    <div className="topic-row-wrapper">
+    <div className="topic-row-wrapper anim-stagger-item" style={{ "--stagger-i": index }}>
       <button className="topic-row" onClick={editMode ? undefined : onClick} style={{ flex: 1 }}>
         <Icon name={icon} />
         <span>{item.title}</span>
@@ -756,21 +860,25 @@ function EntryList({ entries, openEntry, t, currentLang }) {
     result[month].push(entry);
     return result;
   }, {});
+  let flatIdx = 0;
   return (
     <section className="entry-list">
       {Object.entries(grouped).map(([month, monthEntries]) => (
         <div key={month}>
-          <div className="entry-month">{month}</div>
-          {monthEntries.map((entry) => (
-            <button className="entry-card" key={entry.id} onClick={() => openEntry(entry)}>
-              <time><b>{entry.day}</b><span>{entry.weekday || new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { weekday: "short" })}</span></time>
-              <div className="entry-copy"><small>{entry.time}</small><strong>{entry.title || t("no_title")}</strong><span>{entry.summary ?? entry.content ?? entry.location ?? ""}</span></div>
-              <div className="entry-icons">
-                <span><Icon name={`ic_weather_${entry.weather}.png`} /><Icon name={`ic_mood_${entry.mood}.png`} /><Icon name="ic_bookmark_border.png" /></span>
-                {entry.photos && entry.photos.length > 0 && <Icon name="ic_attach.png" />}
-              </div>
-            </button>
-          ))}
+          <div className="entry-month anim-stagger-item" style={{ "--stagger-i": flatIdx }}>{month}</div>
+          {monthEntries.map((entry) => {
+            const i = ++flatIdx;
+            return (
+              <button className="entry-card anim-stagger-item" key={entry.id} onClick={() => openEntry(entry)} style={{ "--stagger-i": i }}>
+                <time><b>{entry.day}</b><span>{entry.weekday || new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { weekday: "short" })}</span></time>
+                <div className="entry-copy"><small>{entry.time}</small><strong>{entry.title || t("no_title")}</strong><span>{entry.summary ?? entry.content ?? entry.location ?? ""}</span></div>
+                <div className="entry-icons">
+                  <span><Icon name={`ic_weather_${entry.weather}.png`} /><Icon name={`ic_mood_${entry.mood}.png`} /><Icon name="ic_bookmark_border.png" /></span>
+                  {entry.photos && entry.photos.length > 0 && <Icon name="ic_attach.png" />}
+                </div>
+              </button>
+            );
+          })}
         </div>
       ))}
     </section>
@@ -1295,8 +1403,8 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
       </NativeTitle>
       {editing && <div className="memo-add"><input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && add()} placeholder={t("add")} /><button onClick={add}><Icon name="ic_add_white_24dp.png" /></button></div>}
       <section className="memo-list">
-        {topicMemos.map((memo) => (
-          <label key={memo.id} className={memo.checked ? "checked" : ""}>
+        {topicMemos.map((memo, idx) => (
+          <label key={memo.id} className={`${memo.checked ? "checked" : ""} anim-stagger-item`} style={{ "--stagger-i": idx }}>
             <Icon name="ic_memo_dot_24dp.png" />
             <input type="checkbox" checked={memo.checked} onChange={() => setData({ ...data, memos: data.memos.map((item) => item.id === memo.id ? { ...item, checked: !item.checked } : item) })} />
             <span>{memo.text}</span>
@@ -1338,8 +1446,8 @@ function Contacts({ data, setData, title, goHome, t }) {
       </header>
       <div className="letters">A<br />B<br />C<br />D<br />E<br />F<br />G<br />H<br />I<br />J<br />K<br />L<br />M<br />N<br />O<br />P<br />Q<br />R<br />S<br />T<br />U<br />V<br />W<br />X<br />Y<br />Z</div>
       <section className="contact-list">
-        {filtered.map((contact) => (
-          <div key={contact.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #cacaca' }}>
+        {filtered.map((contact, idx) => (
+          <div key={contact.id} className="anim-stagger-item" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #cacaca', "--stagger-i": idx }}>
             <a href={`tel:${contact.phone}`} style={{ flex: 1, borderBottom: 'none' }}>
               <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
               <span><b>{contact.name}</b><small>{contact.phone}</small></span>
