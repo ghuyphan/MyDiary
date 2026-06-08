@@ -7,9 +7,13 @@
 /build
 /captures
 
-#Added
+# Added
 .idea/*
 *.apk
 
-#google sign-in
+# Google sign-in
 app/google-services.json
+
+# Web build
+node_modules/
+dist/
