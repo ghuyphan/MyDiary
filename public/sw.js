@@ -1,16 +1,16 @@
 const CACHE_NAME = "mydiary-v1";
 const APP_SHELL = [
-  "/",
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/apple-touch-icon.png",
-  "/assets/ic_launcher-web.png",
-  "/assets/icons/iv_init_logo.png",
-  "/assets/icons/theme_bg_taki.png",
-  "/assets/icons/theme_bg_mitsuha.png",
-  "/assets/icons/profile_theme_bg_taki.png",
-  "/assets/icons/profile_theme_bg_mitsuha.png"
+  "./",
+  "manifest.webmanifest",
+  "icons/icon-192.png",
+  "icons/icon-512.png",
+  "icons/apple-touch-icon.png",
+  "assets/ic_launcher-web.png",
+  "assets/icons/iv_init_logo.png",
+  "assets/icons/theme_bg_taki.png",
+  "assets/icons/theme_bg_mitsuha.png",
+  "assets/icons/profile_theme_bg_taki.png",
+  "assets/icons/profile_theme_bg_mitsuha.png"
 ];
 
 self.addEventListener("install", (event) => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const A = "/assets/icons/";
+const A = import.meta.env.BASE_URL + "assets/icons/";
 const THEMES = {
   taki: {
     name: "Taki",
@@ -1524,11 +1524,11 @@ function About({ goHome, t }) {
     <main className="screen about-screen">
       <NativeTitle title={t("about")} goHome={goHome} />
       <div className="about-content">
-        <img className="about-logo" src="/assets/ic_launcher-web.png" alt="MyDiary" />
+        <img className="about-logo" src={import.meta.env.BASE_URL + "assets/ic_launcher-web.png"} alt="MyDiary" />
         <h2>MyDiary</h2><p>Responsive web port of the original Android application.</p>
         <a href="https://github.com/DaxiaK/MyDiary" target="_blank" rel="noreferrer">Original GitHub project</a>
         <h3>Original screenshots</h3>
-        <div className="screen-gallery">{Array.from({ length: 7 }, (_, index) => <img key={index} src={`/assets/screenshots/s_${index}.png`} alt="" />)}</div>
+        <div className="screen-gallery">{Array.from({ length: 7 }, (_, index) => <img key={index} src={`${import.meta.env.BASE_URL}assets/screenshots/s_${index}.png`} alt="" />)}</div>
         <h3>Original assets ({assetNames.length})</h3>
         <div className="asset-gallery">{assetNames.map((name) => <img key={name} src={`${A}${name}`} title={name} alt="" />)}</div>
       </div>
