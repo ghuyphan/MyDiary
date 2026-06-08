@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const A = import.meta.env.BASE_URL + "assets/icons/";
+const HISTORY_KEY = "mydiary-screen";
 const THEMES = {
   taki: {
     name: "Taki",
@@ -235,26 +236,57 @@ function App() {
   const [prevScreen, setPrevScreen] = useState(null);
   const [transDir, setTransDir] = useState("forward"); // "forward" | "back"
   const [transitioning, setTransitioning] = useState(false);
+  const screenRef = useRef(screen);
+  const transitionTimerRef = useRef(null);
 
   const animatedSetScreen = useCallback((next, direction = "forward") => {
-    if (next === screen) return;
-    setPrevScreen(screen);
+    const current = screenRef.current;
+    if (next === current) return;
+    window.clearTimeout(transitionTimerRef.current);
+    setPrevScreen(current);
     setTransDir(direction);
     setTransitioning(true);
+    screenRef.current = next;
     setScreen(next);
-    // After the CSS animation ends, clean up
-    window.setTimeout(() => {
+    transitionTimerRef.current = window.setTimeout(() => {
       setTransitioning(false);
       setPrevScreen(null);
     }, 320);
-  }, [screen]);
+  }, []);
 
-  const goHome = useCallback(() => animatedSetScreen("home", "back"), [animatedSetScreen]);
+  const navigateTo = useCallback((next) => {
+    if (next === screenRef.current) return;
+    window.history.pushState({ [HISTORY_KEY]: true, screen: next }, "");
+    animatedSetScreen(next, "forward");
+  }, [animatedSetScreen]);
+
+  const goBack = useCallback(() => {
+    if (screenRef.current === "home") return;
+    window.history.back();
+  }, []);
+
+  useEffect(() => {
+    const currentState = window.history.state;
+    if (!currentState?.[HISTORY_KEY]) {
+      window.history.replaceState({ ...currentState, [HISTORY_KEY]: true, screen: "home" }, "");
+    }
+
+    const onPopState = (event) => {
+      const next = event.state?.[HISTORY_KEY] ? event.state.screen : "home";
+      animatedSetScreen(next || "home", "back");
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.clearTimeout(transitionTimerRef.current);
+    };
+  }, [animatedSetScreen]);
 
   // Swipe-from-left-edge to go back on mobile
-  const goHomeRef = useRef(null);
-  goHomeRef.current = screen !== "home" ? goHome : null;
-  useSwipeBack(goHomeRef);
+  const goBackRef = useRef(null);
+  goBackRef.current = screen !== "home" ? goBack : null;
+  useSwipeBack(goBackRef);
   const [topic, setTopic] = useState(null);
   const [diaryTab, setDiaryTab] = useState("entries");
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -279,7 +311,7 @@ function App() {
 
   const openTopic = (item) => {
     setTopic(item);
-    animatedSetScreen(item.type, "forward");
+    navigateTo(item.type);
     if (item.type === "diary") setDiaryTab("entries");
   };
 
@@ -375,7 +407,7 @@ function App() {
                         setTab={setDiaryTab}
                         selected={selectedEntry}
                         setSelected={setSelectedEntry}
-                        goHome={goHome}
+                        goHome={goBack}
                         t={t}
                         currentLang={currentLang}
                       />
@@ -387,7 +419,7 @@ function App() {
                         setData={setData}
                         topicId={topic?.id}
                         title={topic?.title || "禁止事項 Ver.5"}
-                        goHome={goHome}
+                        goHome={goBack}
                         t={t}
                       />
                     );
@@ -397,7 +429,7 @@ function App() {
                         data={data}
                         setData={setData}
                         title={topic?.title || "Contacts"}
-                        goHome={goHome}
+                        goHome={goBack}
                         t={t}
                       />
                     );
@@ -406,8 +438,8 @@ function App() {
                       <Settings
                         data={data}
                         setData={setData}
-                        goHome={goHome}
-                        openAbout={() => animatedSetScreen("about", "forward")}
+                        goHome={goBack}
+                        openAbout={() => navigateTo("about")}
                         onToggleLock={() => {
                           if (data.locked) {
                             setSecurityMode("remove");
@@ -419,7 +451,7 @@ function App() {
                       />
                     );
                   case "about":
-                    return <About goHome={goHome} t={t} />;
+                    return <About goHome={goBack} t={t} />;
                   default:
                     return null;
                 }
@@ -437,7 +469,7 @@ function App() {
                 data={data}
                 setData={setData}
                 close={() => setSettingsOpen(false)}
-                open={(next) => { animatedSetScreen(next, "forward"); setSettingsOpen(false); }}
+                open={(next) => { navigateTo(next); setSettingsOpen(false); }}
                 onAddTopic={() => { setAddingTopic(true); setSettingsOpen(false); }}
                 onToggleLock={() => {
                   if (data.locked) {
