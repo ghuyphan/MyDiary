@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import CometBackground from "./CometBackground";
+import HandwrittenOverlay from "./HandwrittenOverlay";
 
 const A = import.meta.env.BASE_URL + "assets/icons/";
 const HISTORY_KEY = "mydiary-screen";
@@ -20,6 +22,15 @@ const THEMES = {
     background: `${A}theme_bg_mitsuha.png`,
     profile: `${A}profile_theme_bg_mitsuha.png`,
     contacts: `${A}contacts_bg_mitsuha.png`,
+  },
+  twilight: {
+    name: "Twilight",
+    main: "#9c78d6",
+    dark: "#5c3d91",
+    userName: "忘れたくない人",
+    background: `${A}theme_bg_twilight.png`,
+    profile: `${A}profile_theme_bg_twilight.png`,
+    contacts: `${A}contacts_bg_twilight.png`,
   },
 };
 
@@ -51,7 +62,7 @@ const TRANSLATIONS = {
     topic_name: "Topic Name",
     cancel: "Cancel",
     ok: "OK",
-    entries_count: (count) => count === 1 ? "1 Entry" : `${count} Entries`,
+    entries_count: (count) => `${count} entry`,
     photo_overview: "Photo Overview",
     no_photos: "No photos attached yet.",
     view_diary_entry: "View Diary Entry",
@@ -106,7 +117,7 @@ const TRANSLATIONS = {
     original_screenshots: "Original screenshots",
     original_assets: (count) => `Original assets (${count})`,
     topic_contacts: "緊急時以外かけちゃダメ！",
-    topic_diary: "DIARY",
+    topic_diary: "Diary",
     topic_rules: "禁止事項 Ver.5",
     topic_absolute: "ゼッタイ禁止",
     memo_no_spending: "無駄つかい禁止！",
@@ -162,7 +173,7 @@ const TRANSLATIONS = {
     topic_name: "トピック名",
     cancel: "キャンセル",
     ok: "OK",
-    entries_count: (count) => `${count} エントリー`,
+    entries_count: (count) => `${count} entry`,
     photo_overview: "写真一覧",
     no_photos: "画像がありません。",
     view_diary_entry: "日記を表示",
@@ -217,7 +228,7 @@ const TRANSLATIONS = {
     original_screenshots: "オリジナルスクリーンショット",
     original_assets: (count) => `オリジナルアセット (${count})`,
     topic_contacts: "緊急時以外かけちゃダメ！",
-    topic_diary: "DIARY",
+    topic_diary: "Diary",
     topic_rules: "禁止事項 Ver.5",
     topic_absolute: "ゼッタイ禁止",
     memo_no_spending: "無駄つかい禁止！",
@@ -255,7 +266,7 @@ const initialData = {
   locked: false,
   topics: [
     { id: "contacts", type: "contacts", title: "緊急時以外かけちゃダメ！", count: 1 },
-    { id: "diary", type: "diary", title: "DIARY", count: 5 },
+    { id: "diary", type: "diary", title: "Diary", count: 5 },
     { id: "rules", type: "memo", title: "禁止事項 Ver.5", count: 6 },
     { id: "absolute", type: "memo", title: "ゼッタイ禁止", count: 5 },
   ],
@@ -318,9 +329,22 @@ function Icon({ name, alt = "", className = "", style = {} }) {
   return <img className={`icon ${className}`} src={`${A}${name}`} alt={alt} style={style} />;
 }
 
+function FlatList({ data, renderItem, keyExtractor, className = "", ...props }) {
+  return (
+    <div className={className} {...props}>
+      {data.map((item, index) => (
+        <React.Fragment key={keyExtractor ? keyExtractor(item, index) : index}>
+          {renderItem({ item, index })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
 const defaultTopicTranslationKeys = {
   "緊急時以外かけちゃダメ！": "topic_contacts",
   "DIARY": "topic_diary",
+  "Diary": "topic_diary",
   "禁止事項 Ver.5": "topic_rules",
   "ゼッタイ禁止": "topic_absolute",
   "DON'T CALL UNLESS EMERGENCY!": "topic_contacts",
@@ -497,16 +521,92 @@ function useDiaryData() {
   return [data, setData];
 }
 
+const playChime = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(880, now);
+    osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.35);
+    
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(1100, now);
+    osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.4);
+    
+    gainNode.gain.setValueAtTime(0.001, now);
+    gainNode.gain.linearRampToValueAtTime(0.12, now + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+    
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.7);
+    osc2.stop(now + 0.7);
+  } catch (e) {
+    console.warn("Web Audio failed", e);
+  }
+};
+
+const playWriteSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const bufferSize = ctx.sampleRate * 0.12;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1000, now);
+    filter.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+    filter.Q.value = 3;
+    
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.001, now);
+    gainNode.gain.linearRampToValueAtTime(0.06, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    
+    noise.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    noise.start(now);
+    noise.stop(now + 0.12);
+  } catch (e) {}
+};
+
 function App() {
   const [data, setData] = useDiaryData();
   const [splashVisible, setSplashVisible] = useState(true);
   const [splashLeaving, setSplashLeaving] = useState(false);
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("diary");
   const [prevScreen, setPrevScreen] = useState(null);
   const [transDir, setTransDir] = useState("forward"); // "forward" | "back"
   const [transitioning, setTransitioning] = useState(false);
   const screenRef = useRef(screen);
   const transitionTimerRef = useRef(null);
+
+  const [overlayActive, setOverlayActive] = useState(false);
+  const [overlayTheme, setOverlayTheme] = useState("taki");
+
+  const triggerOverlay = useCallback((themeName) => {
+    setOverlayTheme(themeName || data.theme);
+    setOverlayActive(true);
+    playChime();
+  }, [data.theme]);
 
   const animatedSetScreen = useCallback((next, direction = "forward") => {
     const current = screenRef.current;
@@ -530,7 +630,7 @@ function App() {
   }, [animatedSetScreen]);
 
   const goBack = useCallback(() => {
-    if (screenRef.current === "home") return;
+    if (screenRef.current === "diary") return;
     
     let popstateFired = false;
     const onPopStateTemp = () => {
@@ -554,7 +654,7 @@ function App() {
   useEffect(() => {
     const currentState = window.history.state;
     if (!currentState?.[HISTORY_KEY]) {
-      window.history.replaceState({ ...currentState, [HISTORY_KEY]: true, screen: "home" }, "");
+      window.history.replaceState({ ...currentState, [HISTORY_KEY]: true, screen: "diary" }, "");
     }
 
     const onPopState = (event) => {
@@ -571,9 +671,9 @@ function App() {
 
   // Swipe-from-left-edge to go back on mobile
   const goBackRef = useRef(null);
-  goBackRef.current = screen !== "home" ? goBack : null;
+  goBackRef.current = screen !== "diary" ? goBack : null;
   useSwipeBack(goBackRef);
-  const [topic, setTopic] = useState(null);
+  const [topic, setTopic] = useState(() => data.topics.find(t => t.type === "diary") ?? null);
   const [diaryTab, setDiaryTab] = useState("entries");
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -608,9 +708,32 @@ function App() {
   }, []);
 
   const theme = THEMES[data.theme] || THEMES.taki;
+  const getThemeColors = (tName) => {
+    switch (tName) {
+      case "mitsuha":
+        return {
+          light: "rgba(239, 114, 101, 0.45)",
+          shadow: "rgba(239, 114, 101, 0.18)"
+        };
+      case "twilight":
+        return {
+          light: "rgba(156, 120, 214, 0.45)",
+          shadow: "rgba(156, 120, 214, 0.18)"
+        };
+      default: // taki
+        return {
+          light: "rgba(103, 181, 230, 0.45)",
+          shadow: "rgba(103, 181, 230, 0.18)"
+        };
+    }
+  };
+  const themeColors = getThemeColors(data.theme);
+
   const style = {
     "--theme": theme.main,
     "--theme-dark": theme.dark,
+    "--theme-light": themeColors.light,
+    "--theme-shadow": themeColors.shadow,
     "--theme-bg": `url(${theme.background})`,
     "--profile-bg": `url(${theme.profile})`,
     "--contacts-bg": `url(${theme.contacts})`,
@@ -669,13 +792,16 @@ function App() {
   return (
     <div className="site" style={style}>
       <div className="android-app">
-        <StatusBar locked={data.locked} />
+        <StatusBar locked={data.locked} activeScreen={screen} />
         {showLockScreen ? (
           <LockScreen
             t={t}
             mode="unlock"
             expectedPin={data.password}
-            onComplete={() => setAppUnlocked(true)}
+            onComplete={() => {
+              setAppUnlocked(true);
+              triggerOverlay(data.theme);
+            }}
           />
         ) : (
           <>
@@ -718,17 +844,18 @@ function App() {
                       <Diary
                         data={data}
                         setData={setData}
-                        title={topic?.title || "DIARY"}
+                        title={topic?.title || "Diary"}
                         tab={diaryTab}
                         setTab={setDiaryTab}
                         selected={selectedEntry}
                         setSelected={setSelectedEntry}
-                        goHome={goBack}
+                        goHome={() => { window.history.pushState({ [HISTORY_KEY]: true, screen: "home" }, ""); animatedSetScreen("home", "back"); }}
                         t={t}
                         currentLang={currentLang}
                         showConfirm={showConfirm}
                         showPrompt={showPrompt}
                         showAlert={showAlert}
+                        triggerOverlay={triggerOverlay}
                       />
                     );
                   case "memo":
@@ -769,6 +896,7 @@ function App() {
                         }}
                         t={t}
                         showAlert={showAlert}
+                        triggerOverlay={triggerOverlay}
                       />
                     );
                   case "about":
@@ -863,6 +991,12 @@ function App() {
           />
         )}
 
+        <HandwrittenOverlay
+          theme={overlayTheme}
+          active={overlayActive}
+          onComplete={() => setOverlayActive(false)}
+        />
+
         {splashVisible && <SplashScreen leaving={splashLeaving} />}
       </div>
     </div>
@@ -872,8 +1006,8 @@ function App() {
 function SplashScreen({ leaving }) {
   return (
     <div className={`splash-screen ${leaving ? "leaving" : ""}`} aria-label="MyDiary is loading">
-      <img src={`${A}iv_init_logo.png`} alt="MyDiary" />
-      <img className="splash-loader" src={`${A}ic_photo_overview_loading.png`} alt="" aria-hidden="true" />
+      <img src={`${A}iv_init_logo.png`} alt="MyDiary" style={{ zIndex: 1 }} />
+      <img className="splash-loader" src={`${A}ic_photo_overview_loading.png`} alt="" aria-hidden="true" style={{ zIndex: 1 }} />
     </div>
   );
 }
@@ -922,7 +1056,7 @@ function useSwipeBack(callbackRef) {
   }, [callbackRef]);
 }
 
-function StatusBar({ locked }) {
+function StatusBar({ locked, activeScreen }) {
   const [time, setTime] = useState(() => new Date());
   const [online, setOnline] = useState(() => navigator.onLine);
   const [connection, setConnection] = useState(() => navigator.connection?.effectiveType || "4g");
@@ -978,7 +1112,7 @@ function StatusBar({ locked }) {
   const batteryPercent = Math.round(battery.level * 100);
 
   return (
-    <div className="status-bar">
+    <div className={`status-bar screen-${activeScreen}`}>
       <div className="status-left">
         {online ? (
           <>
@@ -1115,21 +1249,23 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
         <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
         <span className="profile-name">{data.userName}</span>
       </button>
-      <section className="topic-list">
-        {topics.map((item, idx) => (
+      <FlatList
+        className="topic-list"
+        data={topics}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item, index }) => (
           <TopicRow
-            key={item.id}
             item={item}
             count={getTopicCount(item)}
             onClick={() => openTopic(item)}
             editMode={editMode}
             onDelete={handleDeleteTopic}
             onRename={handleRenameTopic}
-            index={idx}
+            index={index}
             t={t}
           />
-        ))}
-      </section>
+        )}
+      />
       <div className="home-search-bar">
         <label className="native-search">
           <Icon name="ic_search_white_18dp.png" />
@@ -1168,7 +1304,7 @@ const TopicRow = React.memo(function TopicRow({ item, onClick, count, editMode, 
   );
 });
 
-function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang, showConfirm, showPrompt, showAlert }) {
+function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay }) {
   const openEntry = (entry) => {
     setSelected(entry);
     setTab("editor");
@@ -1181,7 +1317,6 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
   return (
     <main className="screen diary-screen">
       <header className="diary-header">
-        <button className="screen-back" onClick={photoOverviewOpen ? () => setPhotoOverviewOpen(false) : goHome} aria-label="Back">‹</button>
         <div className="native-segmented">
           <button className={tab === "entries" && !photoOverviewOpen ? "active" : ""} onClick={() => { setTab("entries"); setPhotoOverviewOpen(false); }}>{t("entries")}</button>
           <button className={tab === "calendar" && !photoOverviewOpen ? "active" : ""} onClick={() => { setTab("calendar"); setPhotoOverviewOpen(false); }}>{t("calendar")}</button>
@@ -1200,7 +1335,7 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
         <div className="diary-content">
           {tab === "entries" && <EntryList entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
           {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
-          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} />}
+          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} triggerOverlay={triggerOverlay} />}
         </div>
       )}
 
@@ -1227,13 +1362,27 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
 }
 
 const EntryCard = React.memo(function EntryCard({ entry, openEntry, t, currentLang, index }) {
+  const rawDate = new Date(`${entry.date}T00:00:00`);
+  const weekdayText = entry.weekday || rawDate.toLocaleDateString(currentLang, { weekday: "short" });
   return (
     <button className="entry-card anim-stagger-item" onClick={() => openEntry(entry)} style={{ "--stagger-i": index }}>
-      <time><b>{entry.day}</b><span>{entry.weekday || new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { weekday: "short" })}</span></time>
-      <div className="entry-copy"><small>{entry.time}</small><strong>{getTranslatedEntryField(entry.title, t) || t("no_title")}</strong><span>{getTranslatedEntryField(entry.summary ?? entry.content ?? entry.location ?? "", t)}</span></div>
-      <div className="entry-icons">
-        <span><Icon name={`ic_weather_${entry.weather}.png`} /><Icon name={`ic_mood_${entry.mood}.png`} /><Icon name="ic_bookmark_border.png" /></span>
-        {entry.photos && entry.photos.length > 0 && <Icon name="ic_attach.png" />}
+      <div className="entry-card-date">
+        <b>{entry.day}</b>
+        <span>{weekdayText}.</span>
+      </div>
+      <div className="entry-copy">
+        <strong className="entry-card-title">{getTranslatedEntryField(entry.title, t) || t("no_title")}</strong>
+        <span className="entry-card-summary">{getTranslatedEntryField(entry.summary ?? entry.content ?? entry.location ?? "", t)}</span>
+      </div>
+      <div className="entry-card-icons">
+        <div className="entry-card-top-icons">
+          <Icon name={`ic_weather_${entry.weather}.png`} className="entry-card-icon" />
+          <Icon name={`ic_mood_${entry.mood}.png`} className="entry-card-icon" />
+          <Icon name="ic_bookmark_border.png" className="entry-card-icon bookmark-icon" />
+        </div>
+        {entry.photos && entry.photos.length > 0 && (
+          <Icon name="ic_attach.png" className="entry-card-attach-icon" />
+        )}
       </div>
     </button>
   );
@@ -1252,19 +1401,22 @@ function EntryList({ entries, openEntry, t, currentLang }) {
       {Object.entries(grouped).map(([month, monthEntries]) => (
         <div key={month}>
           <div className="entry-month anim-stagger-item" style={{ "--stagger-i": flatIdx }}>{month}</div>
-          {monthEntries.map((entry) => {
-            const i = ++flatIdx;
-            return (
-              <EntryCard
-                key={entry.id}
-                entry={entry}
-                openEntry={openEntry}
-                t={t}
-                currentLang={currentLang}
-                index={i}
-              />
-            );
-          })}
+          <FlatList
+            data={monthEntries}
+            keyExtractor={(entry) => entry.id}
+            renderItem={({ item }) => {
+              const i = ++flatIdx;
+              return (
+                <EntryCard
+                  entry={item}
+                  openEntry={openEntry}
+                  t={t}
+                  currentLang={currentLang}
+                  index={i}
+                />
+              );
+            }}
+          />
         </div>
       ))}
     </section>
@@ -1315,6 +1467,7 @@ function Calendar({ entries, openEntry, t, currentLang }) {
     String(viewDate.getDate()).padStart(2, "0"),
   ].join("-");
   const selectedEntry = entries.find((item) => item.date === selectedDatePattern);
+  const selectedDayEntries = entries.filter((item) => item.date === selectedDatePattern);
   const formatDay = (date) => ({
     month: date.toLocaleDateString(currentLang, { month: "long" }),
     date: date.getDate(),
@@ -1351,7 +1504,6 @@ function Calendar({ entries, openEntry, t, currentLang }) {
               className={`${entry ? "marked" : ""} ${isToday ? "today-cell" : ""} ${isSelected ? "selected-cell" : ""}`}
               onClick={() => {
                 setViewDate(dayDate);
-                if (entry) openEntry(entry);
               }}
             >
               {day}
@@ -1366,7 +1518,10 @@ function Calendar({ entries, openEntry, t, currentLang }) {
   return (
     <section
       className={`calendar-view ${calendarMode === "day" ? "calendar-day-mode" : "calendar-month-mode"}`}
-      onPointerDown={(event) => setDragStart(event.clientX)}
+      onPointerDown={(event) => {
+        if (calendarMode !== "day") return;
+        setDragStart(event.clientX);
+      }}
       onPointerUp={(event) => {
         if (dragStart === null) return;
         const distance = event.clientX - dragStart;
@@ -1396,15 +1551,19 @@ function Calendar({ entries, openEntry, t, currentLang }) {
             <div
               key={dayTurn.id}
               className={`page-flip-layer page-flip-${dayTurn.direction}`}
+              onAnimationEnd={() => {
+                setDayTurn(null);
+              }}
               aria-hidden="true"
             >
-              <div className="page-flip-copy">
+              <div className="day-page-date page-flip-copy">
                 <span className="day-page-month">{turnedFromDay.month}</span>
                 <strong>{turnedFromDay.date}</strong>
                 <span className="day-page-weekday">{turnedFromDay.weekday}</span>
               </div>
-              <i className="page-fold-back" />
-              <i className="page-fold-shadow" />
+              <div className="page-fold-wrapper">
+                <i className="page-fold-back" />
+              </div>
             </div>
           )}
         </div>
@@ -1424,6 +1583,27 @@ function Calendar({ entries, openEntry, t, currentLang }) {
           </div>
         </div>
       )}
+      <div className="calendar-entries-container">
+        {selectedDayEntries.length > 0 ? (
+          <FlatList
+            data={selectedDayEntries}
+            keyExtractor={(entry) => entry.id}
+            renderItem={({ item }) => (
+              <EntryCard
+                entry={item}
+                openEntry={openEntry}
+                t={t}
+                currentLang={currentLang}
+                index={0}
+              />
+            )}
+          />
+        ) : (
+          <div className="calendar-no-entries">
+            <span>{currentLang === "ja" ? "この日のエントリーはありません" : "No entries on this day"}</span>
+          </div>
+        )}
+      </div>
       <button 
         className={`calendar-mode ${calendarMode === "month" ? "month-mode" : "day-mode"}`}
         onClick={() => setCalendarMode(calendarMode === "month" ? "day" : "month")}
@@ -1470,7 +1650,7 @@ const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
   );
 };
 
-function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm, showPrompt, showAlert }) {
+function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay }) {
   const createDraft = () => {
     const d = new Date();
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -1552,6 +1732,10 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
         ? data.entries.map((item) => item.id === draft.id ? updatedEntry : item)
         : [updatedEntry, ...data.entries]
     });
+    playWriteSound();
+    if (triggerOverlay) {
+      triggerOverlay();
+    }
     close();
   };
 
@@ -1868,16 +2052,19 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
         <button onClick={() => setEditing(!editing)}><Icon name={editing ? "ic_mode_edit_cancel_white_24dp.png" : "ic_mode_edit_white_24dp.png"} /></button>
       </NativeTitle>
       {editing && <div className="memo-add"><input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && add()} placeholder={t("add")} /><button onClick={add}><Icon name="ic_add_white_24dp.png" /></button></div>}
-      <section className="memo-list">
-        {topicMemos.map((memo, idx) => (
-          <label key={memo.id} className={`${memo.checked ? "checked" : ""} anim-stagger-item`} style={{ "--stagger-i": idx }}>
+      <FlatList
+        className="memo-list"
+        data={topicMemos}
+        keyExtractor={(memo) => memo.id}
+        renderItem={({ item, index }) => (
+          <label className={`${item.checked ? "checked" : ""} anim-stagger-item`} style={{ "--stagger-i": index }}>
             <Icon name="ic_memo_dot_24dp.png" />
-            <input type="checkbox" checked={memo.checked} onChange={() => setData({ ...data, memos: data.memos.map((item) => item.id === memo.id ? { ...item, checked: !item.checked } : item) })} />
-            <span>{getTranslatedMemoText(memo.text, t)}</span>
-            {editing && <button onClick={() => setData({ ...data, memos: data.memos.filter((item) => item.id !== memo.id) })}><Icon name="ic_cancel_black_24dp.png" /></button>}
+            <input type="checkbox" checked={item.checked} onChange={() => setData({ ...data, memos: data.memos.map((m) => m.id === item.id ? { ...m, checked: !m.checked } : m) })} />
+            <span>{getTranslatedMemoText(item.text, t)}</span>
+            {editing && <button onClick={() => setData({ ...data, memos: data.memos.filter((m) => m.id !== item.id) })}><Icon name="ic_cancel_black_24dp.png" /></button>}
           </label>
-        ))}
-      </section>
+        )}
+      />
     </main>
   );
 }
@@ -1917,19 +2104,22 @@ function Contacts({ data, setData, title, goHome, t, showConfirm }) {
         <label className="native-search"><Icon name="ic_search_white_18dp.png" /><input value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       </header>
       <div className="letters">A<br />B<br />C<br />D<br />E<br />F<br />G<br />H<br />I<br />J<br />K<br />L<br />M<br />N<br />O<br />P<br />Q<br />R<br />S<br />T<br />U<br />V<br />W<br />X<br />Y<br />Z</div>
-      <section className="contact-list">
-        {filtered.map((contact, idx) => (
-          <div key={contact.id} className="anim-stagger-item" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #cacaca', "--stagger-i": idx }}>
-            <button className="contact-call-target" onClick={() => setCallingContact(contact)}>
+      <FlatList
+        className="contact-list"
+        data={filtered}
+        keyExtractor={(contact) => contact.id}
+        renderItem={({ item, index }) => (
+          <div className="anim-stagger-item" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #cacaca', "--stagger-i": index }}>
+            <button className="contact-call-target" onClick={() => setCallingContact(item)}>
               <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
-              <span><b>{contact.name}</b><small>{contact.phone}</small></span>
+              <span><b>{item.name}</b><small>{item.phone}</small></span>
             </button>
-            <button onClick={() => deleteContact(contact.id)} style={{ background: 'transparent', padding: '10px' }} aria-label={t("delete_contact_confirm")}>
+            <button onClick={() => deleteContact(item.id)} style={{ background: 'transparent', padding: '10px' }} aria-label={t("delete_contact_confirm")}>
               <Icon name="ic_cancel_black_24dp.png" />
             </button>
           </div>
-        ))}
-      </section>
+        )}
+      />
       {adding && (
         <NativeDialog title={t("contact_dialog_title")} close={() => setAdding(false)}>
           <input placeholder={t("name")} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
@@ -2090,6 +2280,7 @@ function FakeCallScreen({ contact, close, t }) {
       )}
       <div className="call-sky" />
       <div className="call-vignette" />
+      <CometBackground active={true} speed={1.3} cometFrequency={2800} />
       <header className="call-simulation-label">{t("simulated_call")}</header>
       <div className="call-contact">
         <span className="call-avatar"><Icon name="ic_person_picture_default.png" /></span>
@@ -2274,7 +2465,7 @@ function PhotoViewerModal({ item, close, viewEntry, t, currentLang }) {
   );
 }
 
-function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert }) {
+function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert, triggerOverlay }) {
   const fileRef = useRef(null);
   const exportData = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -2306,7 +2497,14 @@ function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert
         <select value={data.theme} onChange={(event) => {
           const next = event.target.value;
           setData({ ...data, theme: next, userName: THEMES[next].userName });
-        }}><option value="taki">Taki</option><option value="mitsuha">Mitsuha</option></select>
+          if (triggerOverlay) {
+            triggerOverlay(next);
+          }
+        }}>
+          <option value="taki">Taki</option>
+          <option value="mitsuha">Mitsuha</option>
+          <option value="twilight">Twilight</option>
+        </select>
         <div className="settings-profile-preview"><span>{t("profile_bg")}</span></div>
         <label>{t("your_name")}<input value={data.userName} onChange={(event) => setData({ ...data, userName: event.target.value })} /></label>
         <div className="color-settings"><span>{t("sec_color")}<i style={{ background: "var(--theme-dark)" }} /></span><span>{t("main_color")}<i style={{ background: "var(--theme)" }} /></span></div>
@@ -2447,6 +2645,7 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
 
   return (
     <div className="lock-screen">
+      <CometBackground active={true} speed={0.7} cometFrequency={4500} />
       <div className="lock-header">
         <h2>{message}</h2>
         <p style={{ color: "#ff8b80" }}>{errorMsg}</p>
