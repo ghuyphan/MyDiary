@@ -1274,129 +1274,159 @@ function EntryList({ entries, openEntry, t, currentLang }) {
 function Calendar({ entries, openEntry, t, currentLang }) {
   const [viewDate, setViewDate] = useState(() => {
     if (entries.length > 0) {
-      return new Date(entries[0].date);
+      return new Date(`${entries[0].date}T00:00:00`);
     }
     return new Date();
   });
-  const [calendarMode, setCalendarMode] = useState("month");
+  const [calendarMode, setCalendarMode] = useState("day");
+  const [dragStart, setDragStart] = useState(null);
+  const [dayTurn, setDayTurn] = useState(null);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
   const prevAction = () => {
-    if (calendarMode === "week") {
-      const prevWeek = new Date(viewDate);
-      prevWeek.setDate(viewDate.getDate() - 7);
-      setViewDate(prevWeek);
+    if (calendarMode === "day") {
+      const previousDay = new Date(viewDate);
+      previousDay.setDate(viewDate.getDate() - 1);
+      setDayTurn({ id: Date.now(), direction: "prev", fromDate: new Date(viewDate) });
+      setViewDate(previousDay);
     } else {
       setViewDate(new Date(year, month - 1, 1));
     }
   };
 
   const nextAction = () => {
-    if (calendarMode === "week") {
-      const nextWeek = new Date(viewDate);
-      nextWeek.setDate(viewDate.getDate() + 7);
-      setViewDate(nextWeek);
+    if (calendarMode === "day") {
+      const followingDay = new Date(viewDate);
+      followingDay.setDate(viewDate.getDate() + 1);
+      setDayTurn({ id: Date.now(), direction: "next", fromDate: new Date(viewDate) });
+      setViewDate(followingDay);
     } else {
       setViewDate(new Date(year, month + 1, 1));
     }
   };
 
   const formattedMonthName = viewDate.toLocaleDateString(currentLang, { month: "long" });
+  const formattedWeekday = viewDate.toLocaleDateString(currentLang, { weekday: "long" });
+  const selectedDatePattern = [
+    year,
+    String(month + 1).padStart(2, "0"),
+    String(viewDate.getDate()).padStart(2, "0"),
+  ].join("-");
+  const selectedEntry = entries.find((item) => item.date === selectedDatePattern);
+  const formatDay = (date) => ({
+    month: date.toLocaleDateString(currentLang, { month: "long" }),
+    date: date.getDate(),
+    weekday: date.toLocaleDateString(currentLang, { weekday: "long" }),
+  });
+  const turnedFromDay = dayTurn ? formatDay(dayTurn.fromDate) : null;
 
   const weekdays = currentLang === "ja"
-    ? ["日", "月", "火", "水", "木", "金", "土"]
-    : ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    ? ["月", "火", "水", "木", "金", "土", "日"]
+    : ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
   // Helper to render the day cells
   const renderDays = () => {
-    if (calendarMode === "month") {
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startDayOfWeek = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
+    const days = Array.from({ length: daysInMonth }, (_, index) => index + 1);
+    const spacers = Array.from({ length: startDayOfWeek }, (_, index) => index);
 
-      const days = Array.from({ length: daysInMonth }, (_, index) => index + 1);
-      const spacers = Array.from({ length: startDayOfWeek }, (_, index) => index);
+    return (
+      <>
+        {spacers.map((val) => <i key={`spacer-${val}`} />)}
+        {days.map((day) => {
+          const monthStr = String(month + 1).padStart(2, "0");
+          const dayStr = String(day).padStart(2, "0");
+          const datePattern = `${year}-${monthStr}-${dayStr}`;
+          const entry = entries.find((item) => item.date === datePattern);
+          const dayDate = new Date(year, month, day);
+          const isToday = new Date().toDateString() === dayDate.toDateString();
+          const isSelected = viewDate.toDateString() === dayDate.toDateString();
 
-      return (
-        <>
-          {spacers.map((val) => <i key={`spacer-${val}`} />)}
-          {days.map((day) => {
-            const monthStr = String(month + 1).padStart(2, '0');
-            const dayStr = String(day).padStart(2, '0');
-            const datePattern = `${year}-${monthStr}-${dayStr}`;
-            
-            const entry = entries.find((item) => item.date === datePattern);
-            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
-            return (
-              <button
-                key={day}
-                className={`${entry ? "marked" : ""} ${isToday ? "today-cell" : ""}`}
-                onClick={() => entry && openEntry(entry)}
-              >
-                {day}
-                {entry && <span />}
-              </button>
-            );
-          })}
-        </>
-      );
-    } else {
-      // Week mode: Show the 7 days of the week containing viewDate
-      const currentDayOfWeek = viewDate.getDay();
-      const sunday = new Date(viewDate);
-      sunday.setDate(viewDate.getDate() - currentDayOfWeek);
-
-      const weekDates = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(sunday);
-        d.setDate(sunday.getDate() + i);
-        return d;
-      });
-
-      return weekDates.map((dayDate, idx) => {
-        const y = dayDate.getFullYear();
-        const m = String(dayDate.getMonth() + 1).padStart(2, '0');
-        const d = String(dayDate.getDate()).padStart(2, '0');
-        const datePattern = `${y}-${m}-${d}`;
-
-        const entry = entries.find((item) => item.date === datePattern);
-        const isToday = new Date().toDateString() === dayDate.toDateString();
-        const isSelected = viewDate.toDateString() === dayDate.toDateString();
-
-        return (
-          <button
-            key={idx}
-            className={`${entry ? "marked" : ""} ${isToday ? "today-cell" : ""} ${isSelected ? "selected-cell" : ""}`}
-            onClick={() => {
-              setViewDate(dayDate);
-              if (entry) openEntry(entry);
-            }}
-          >
-            {dayDate.getDate()}
-            {entry && <span />}
-          </button>
-        );
-      });
-    }
+          return (
+            <button
+              key={day}
+              className={`${entry ? "marked" : ""} ${isToday ? "today-cell" : ""} ${isSelected ? "selected-cell" : ""}`}
+              onClick={() => {
+                setViewDate(dayDate);
+                if (entry) openEntry(entry);
+              }}
+            >
+              {day}
+              {entry && <span />}
+            </button>
+          );
+        })}
+      </>
+    );
   };
 
   return (
-    <section className="calendar-view">
-      <div className="calendar-month">
-        <button onClick={prevAction}>‹</button>
-        <span>
-          <small>{year}</small>
-          {formattedMonthName}
-        </span>
-        <button onClick={nextAction}>›</button>
-      </div>
-      <div className="week-row">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
-      <div className="day-grid">
-        {renderDays()}
-      </div>
+    <section
+      className={`calendar-view ${calendarMode === "day" ? "calendar-day-mode" : "calendar-month-mode"}`}
+      onPointerDown={(event) => setDragStart(event.clientX)}
+      onPointerUp={(event) => {
+        if (dragStart === null) return;
+        const distance = event.clientX - dragStart;
+        if (Math.abs(distance) > 44) {
+          if (distance > 0) prevAction();
+          else nextAction();
+        }
+        setDragStart(null);
+      }}
+      onPointerCancel={() => setDragStart(null)}
+    >
+      {calendarMode === "day" ? (
+        <div className="anime-day-sheet">
+          <button className="day-page-hit day-page-prev" onClick={prevAction} aria-label="Previous day" />
+          <button
+            className="day-page-date"
+            onClick={() => selectedEntry && openEntry(selectedEntry)}
+            aria-label={selectedEntry ? t("view_diary_entry") : selectedDatePattern}
+          >
+            <span className="day-page-month">{formattedMonthName}</span>
+            <strong>{viewDate.getDate()}</strong>
+            <span className="day-page-weekday">{formattedWeekday}</span>
+            {selectedEntry && <i className="day-page-entry-dot" />}
+          </button>
+          <button className="day-page-hit day-page-next" onClick={nextAction} aria-label="Next day" />
+          {turnedFromDay && (
+            <div
+              key={dayTurn.id}
+              className={`page-flip-layer page-flip-${dayTurn.direction}`}
+              aria-hidden="true"
+            >
+              <div className="page-flip-copy">
+                <span className="day-page-month">{turnedFromDay.month}</span>
+                <strong>{turnedFromDay.date}</strong>
+                <span className="day-page-weekday">{turnedFromDay.weekday}</span>
+              </div>
+              <i className="page-fold-back" />
+              <i className="page-fold-shadow" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="month-calendar">
+          <div className="calendar-month">
+            <button onClick={prevAction}>‹</button>
+            <span>
+              <small>{year}</small>
+              {formattedMonthName}
+            </span>
+            <button onClick={nextAction}>›</button>
+          </div>
+          <div className="week-row">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
+          <div className="day-grid">
+            {renderDays()}
+          </div>
+        </div>
+      )}
       <button 
-        className={`calendar-mode ${calendarMode === "month" ? "month-mode" : "week-mode"}`} 
-        onClick={() => setCalendarMode(calendarMode === "month" ? "week" : "month")}
+        className={`calendar-mode ${calendarMode === "month" ? "month-mode" : "day-mode"}`}
+        onClick={() => setCalendarMode(calendarMode === "month" ? "day" : "month")}
         aria-label="Toggle calendar mode"
       >
         <Icon name="ic_keyboard_arrow_down_black_24dp.png" />
@@ -1921,20 +1951,60 @@ function Contacts({ data, setData, title, goHome, t, showConfirm }) {
   );
 }
 
+function parseVttTime(value) {
+  const parts = value.trim().split(":").map(Number);
+  const seconds = parts.pop() ?? 0;
+  const minutes = parts.pop() ?? 0;
+  const hours = parts.pop() ?? 0;
+  return (hours * 3600) + (minutes * 60) + seconds;
+}
+
+function parseVtt(text) {
+  return text
+    .replace(/\r/g, "")
+    .split("\n\n")
+    .map((block) => {
+      const lines = block.split("\n").filter(Boolean);
+      const timingIndex = lines.findIndex((line) => line.includes("-->"));
+      if (timingIndex === -1) return null;
+
+      const [start, end] = lines[timingIndex].split("-->").map((value) => value.trim().split(/\s+/)[0]);
+      const textLines = lines.slice(timingIndex + 1);
+      return {
+        start: parseVttTime(start),
+        end: parseVttTime(end),
+        text: textLines.join("\n")
+      };
+    })
+    .filter(Boolean);
+}
+
 function FakeCallScreen({ contact, close, t }) {
   const [phase, setPhase] = useState("calling");
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
   const [speaker, setSpeaker] = useState(true);
   const [voiceAvailable, setVoiceAvailable] = useState(true);
+  const [subtitleCues, setSubtitleCues] = useState([]);
+  const [activeCaption, setActiveCaption] = useState([]);
   const connectTimerRef = useRef(null);
   const audioRef = useRef(null);
 
   const isMitsuha = /三葉|mitsuha/i.test(contact.name);
-  const dialogue = isMitsuha
-    ? "もしもし、瀧くん？ 三葉だよ。ちゃんと聞こえる？ 今日も無理しないでね。"
-    : `もしもし、${contact.name}です。声、聞こえる？`;
-  const audioSource = isMitsuha ? "/assets/audio/mitsuha-call.mp3" : null;
+  const audioSource = isMitsuha
+    ? `${import.meta.env.BASE_URL}assets/audio/mitsuha-call.mp3`
+    : null;
+  const subtitleSource = isMitsuha
+    ? `${import.meta.env.BASE_URL}assets/audio/taki-and-mitsuha-meet-jpn.vtt`
+    : null;
+
+  const updateActiveCaption = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || subtitleCues.length === 0) return;
+
+    const currentCue = subtitleCues.find((cue) => audio.currentTime >= cue.start && audio.currentTime <= cue.end);
+    setActiveCaption(currentCue ? currentCue.text.split("\n") : []);
+  }, [subtitleCues]);
 
   const playAudio = useCallback(() => {
     const audio = audioRef.current;
@@ -1944,10 +2014,29 @@ function FakeCallScreen({ contact, close, t }) {
     }
 
     audio.currentTime = 0;
+    setActiveCaption([]);
     audio.play()
       .then(() => setVoiceAvailable(true))
       .catch(() => setVoiceAvailable(false));
   }, [audioSource]);
+
+  useEffect(() => {
+    if (!subtitleSource) {
+      setSubtitleCues([]);
+      setActiveCaption([`もしもし、${contact.name}です。声、聞こえる？`]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    fetch(subtitleSource, { signal: controller.signal })
+      .then((response) => response.ok ? response.text() : Promise.reject(new Error("Subtitle unavailable")))
+      .then((text) => setSubtitleCues(parseVtt(text)))
+      .catch((error) => {
+        if (error.name !== "AbortError") setSubtitleCues([]);
+      });
+
+    return () => controller.abort();
+  }, [contact.name, subtitleSource]);
 
   useEffect(() => {
     connectTimerRef.current = window.setTimeout(() => {
@@ -1994,6 +2083,9 @@ function FakeCallScreen({ contact, close, t }) {
           preload="auto"
           onCanPlay={() => setVoiceAvailable(true)}
           onError={() => setVoiceAvailable(false)}
+          onEnded={endCall}
+          onSeeked={updateActiveCaption}
+          onTimeUpdate={updateActiveCaption}
         />
       )}
       <div className="call-sky" />
@@ -2006,7 +2098,11 @@ function FakeCallScreen({ contact, close, t }) {
       </div>
       {phase === "connected" && (
         <div className="call-dialogue" aria-live="polite">
-          <span>{dialogue}</span>
+          {activeCaption.map((line, index) => (
+            <p className="call-caption-line" key={`${line}-${index}`}>
+              <span>{line}</span>
+            </p>
+          ))}
           {!voiceAvailable && <small>{t("voice_unavailable")}</small>}
         </div>
       )}
@@ -2060,7 +2156,7 @@ function CallReplayIcon() {
 function CallPhoneIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5.5 15.5c4.4-2.6 8.6-2.6 13 0l-2.2 3.2c-.4.6-1.1.8-1.8.5l-2.5-1.1-2.5 1.1c-.7.3-1.4.1-1.8-.5l-2.2-3.2z" />
+      <path d="M4.75 16.25c4.15-4.35 10.35-4.35 14.5 0" />
     </svg>
   );
 }
