@@ -93,6 +93,14 @@ const TRANSLATIONS = {
     contacts: "Contacts",
     insert_movie_phrase: "Insert iconic phrase:",
     contact_dialog_title: "Contact",
+    simulated_call: "Simulated call",
+    calling: "Calling...",
+    connected: "Connected",
+    end_call: "End call",
+    mute: "Mute",
+    speaker: "Speaker",
+    replay_voice: "Replay audio",
+    voice_unavailable: "Licensed Mitsuha call audio has not been installed.",
     import_failed: "Import failed",
     original_github: "Original GitHub project",
     original_screenshots: "Original screenshots",
@@ -196,6 +204,14 @@ const TRANSLATIONS = {
     contacts: "連絡先",
     insert_movie_phrase: "映画の名台詞を挿入：",
     contact_dialog_title: "連絡先",
+    simulated_call: "通話シミュレーション",
+    calling: "発信中...",
+    connected: "通話中",
+    end_call: "通話終了",
+    mute: "消音",
+    speaker: "スピーカー",
+    replay_voice: "もう一度聞く",
+    voice_unavailable: "許可された三葉の通話音声がまだ追加されていません。",
     import_failed: "インポートに失敗しました",
     original_github: "オリジナルのGitHubプロジェクト",
     original_screenshots: "オリジナルスクリーンショット",
@@ -1225,7 +1241,7 @@ const EntryCard = React.memo(function EntryCard({ entry, openEntry, t, currentLa
 
 function EntryList({ entries, openEntry, t, currentLang }) {
   const grouped = entries.reduce((result, entry) => {
-    const month = new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { month: "short" });
+    const month = String(new Date(`${entry.date}T00:00:00`).getMonth() + 1);
     if (!result[month]) result[month] = [];
     result[month].push(entry);
     return result;
@@ -1839,6 +1855,7 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
 function Contacts({ data, setData, title, goHome, t, showConfirm }) {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
+  const [callingContact, setCallingContact] = useState(null);
   const [draft, setDraft] = useState({ name: "", phone: "" });
   
   const filtered = data.contacts.filter((item) => `${item.name}${item.phone}`.toLowerCase().includes(query.toLowerCase()));
@@ -1873,10 +1890,10 @@ function Contacts({ data, setData, title, goHome, t, showConfirm }) {
       <section className="contact-list">
         {filtered.map((contact, idx) => (
           <div key={contact.id} className="anim-stagger-item" style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #cacaca', "--stagger-i": idx }}>
-            <a href={`tel:${contact.phone}`} style={{ flex: 1, borderBottom: 'none' }}>
+            <button className="contact-call-target" onClick={() => setCallingContact(contact)}>
               <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
               <span><b>{contact.name}</b><small>{contact.phone}</small></span>
-            </a>
+            </button>
             <button onClick={() => deleteContact(contact.id)} style={{ background: 'transparent', padding: '10px' }} aria-label={t("delete_contact_confirm")}>
               <Icon name="ic_cancel_black_24dp.png" />
             </button>
@@ -1893,7 +1910,158 @@ function Contacts({ data, setData, title, goHome, t, showConfirm }) {
           </div>
         </NativeDialog>
       )}
+      {callingContact && (
+        <FakeCallScreen
+          contact={callingContact}
+          close={() => setCallingContact(null)}
+          t={t}
+        />
+      )}
     </main>
+  );
+}
+
+function FakeCallScreen({ contact, close, t }) {
+  const [phase, setPhase] = useState("calling");
+  const [seconds, setSeconds] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [speaker, setSpeaker] = useState(true);
+  const [voiceAvailable, setVoiceAvailable] = useState(true);
+  const connectTimerRef = useRef(null);
+  const audioRef = useRef(null);
+
+  const isMitsuha = /三葉|mitsuha/i.test(contact.name);
+  const dialogue = isMitsuha
+    ? "もしもし、瀧くん？ 三葉だよ。ちゃんと聞こえる？ 今日も無理しないでね。"
+    : `もしもし、${contact.name}です。声、聞こえる？`;
+  const audioSource = isMitsuha ? "/assets/audio/mitsuha-call.mp3" : null;
+
+  const playAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !audioSource) {
+      setVoiceAvailable(false);
+      return;
+    }
+
+    audio.currentTime = 0;
+    audio.play()
+      .then(() => setVoiceAvailable(true))
+      .catch(() => setVoiceAvailable(false));
+  }, [audioSource]);
+
+  useEffect(() => {
+    connectTimerRef.current = window.setTimeout(() => {
+      setPhase("connected");
+    }, 1400);
+    return () => window.clearTimeout(connectTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "connected") return undefined;
+    playAudio();
+    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [phase, playAudio]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = muted;
+      audioRef.current.volume = speaker ? 1 : 0.62;
+    }
+  }, [muted, speaker]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      audio?.pause();
+    };
+  }, []);
+
+  const endCall = () => {
+    window.clearTimeout(connectTimerRef.current);
+    audioRef.current?.pause();
+    close();
+  };
+
+  const duration = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+
+  return (
+    <section className="fake-call-screen" aria-label={t("simulated_call")}>
+      {audioSource && (
+        <audio
+          ref={audioRef}
+          src={audioSource}
+          preload="auto"
+          onCanPlay={() => setVoiceAvailable(true)}
+          onError={() => setVoiceAvailable(false)}
+        />
+      )}
+      <div className="call-sky" />
+      <div className="call-vignette" />
+      <header className="call-simulation-label">{t("simulated_call")}</header>
+      <div className="call-contact">
+        <span className="call-avatar"><Icon name="ic_person_picture_default.png" /></span>
+        <h2>{contact.name}</h2>
+        <p>{phase === "calling" ? t("calling") : `${t("connected")} · ${duration}`}</p>
+      </div>
+      {phase === "connected" && (
+        <div className="call-dialogue" aria-live="polite">
+          <span>{dialogue}</span>
+          {!voiceAvailable && <small>{t("voice_unavailable")}</small>}
+        </div>
+      )}
+      <div className="call-controls">
+        <button className={muted ? "active" : ""} onClick={() => setMuted((value) => !value)} aria-pressed={muted}>
+          <CallMicrophoneIcon muted={muted} />
+          <span>{t("mute")}</span>
+        </button>
+        <button className={speaker ? "active" : ""} onClick={() => setSpeaker((value) => !value)} aria-pressed={speaker}>
+          <CallSpeakerIcon />
+          <span>{t("speaker")}</span>
+        </button>
+        <button onClick={playAudio} disabled={phase !== "connected"}>
+          <CallReplayIcon />
+          <span>{t("replay_voice")}</span>
+        </button>
+      </div>
+      <button className="call-end" onClick={endCall} aria-label={t("end_call")}>
+        <CallPhoneIcon />
+      </button>
+    </section>
+  );
+}
+
+function CallMicrophoneIcon({ muted }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M6.5 11.5A5.5 5.5 0 0 0 17.5 11.5M12 17v4M9 21h6" />
+      {muted && <path d="M5 5l14 14" />}
+    </svg>
+  );
+}
+
+function CallSpeakerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 10v4h4l5 4V6L9 10H5zM17 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" />
+    </svg>
+  );
+}
+
+function CallReplayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 8V4l3 3a7 7 0 1 1-2 8M8 7h-4" />
+    </svg>
+  );
+}
+
+function CallPhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.5 15.5c4.4-2.6 8.6-2.6 13 0l-2.2 3.2c-.4.6-1.1.8-1.8.5l-2.5-1.1-2.5 1.1c-.7.3-1.4.1-1.8-.5l-2.2-3.2z" />
+    </svg>
   );
 }
 
