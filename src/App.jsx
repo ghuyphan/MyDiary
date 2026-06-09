@@ -81,13 +81,51 @@ const TRANSLATIONS = {
     delete_entry: "Delete Entry",
     discard_draft: "Discard Draft",
     save_entry: "Save Entry",
+    save_failed_empty: "Cannot save an empty entry. Please write a title or content.",
     location: "Location",
     attach_photo: "Attach Photo",
     movie_phrases: "Movie Phrases & Stats",
     loading: "MyDiary is loading",
     confirm_location: (city) => `Confirm or enter your location:`,
     gps_failed: "GPS failed. Enter location manually (e.g. Itomori, Tokyo):",
-    geolocation_unsupported: "Geolocation not supported. Enter location manually:"
+    geolocation_unsupported: "Geolocation not supported. Enter location manually:",
+    memo: "Memo",
+    contacts: "Contacts",
+    insert_movie_phrase: "Insert iconic phrase:",
+    contact_dialog_title: "Contact",
+    import_failed: "Import failed",
+    original_github: "Original GitHub project",
+    original_screenshots: "Original screenshots",
+    original_assets: (count) => `Original assets (${count})`,
+    topic_contacts: "緊急時以外かけちゃダメ！",
+    topic_diary: "DIARY",
+    topic_rules: "禁止事項 Ver.5",
+    topic_absolute: "ゼッタイ禁止",
+    memo_no_spending: "無駄つかい禁止！",
+    memo_no_dialects: "訛り禁止！",
+    memo_no_lateness: "遅刻するな！",
+    memo_no_feminine: "女言葉NG！",
+    memo_okudera: "奧寺先輩と馴れ馴れしくするな.....",
+    memo_tsukasa: "司とベタベタするな.....",
+    memo_body_touching: "体を触るな！",
+    memo_bath_eyes: "お風呂に入る時は目をつぶれ！",
+    memo_body_moving: "他人の体を勝手に動かすな！",
+    memo_mitsuha_friends: "みつはの友達と仲良くするな！",
+    memo_boys_prohibited: "男子禁制！",
+    entry_title_1: "Part-time Job",
+    entry_title_2: "Tokyo Life 3❤",
+    entry_title_3: "Midterms Start",
+    entry_title_4: "Tokyo Life 2❤",
+    entry_content_1: "Getting used to life in Tokyo. The job is going well.",
+    entry_content_2: "Date with Okudera-senpai, Tsukasa, and Takagi at Odaiba (?)! It was super fun!",
+    entry_content_3: "I haven't studied at all but the exams started. What should I do?",
+    entry_content_4: "First dinner with Okudera-senpai in Tokyo. I was a bit nervous but she was nice!",
+    entry_content_5: "When I woke up, I was in a strange room. I thought it was a dream...",
+    entry_summary_1: "Getting used to life in Tokyo.",
+    entry_summary_2: "Date at Odaiba with friends.",
+    entry_summary_3: "Exams started...",
+    entry_summary_4: "First dinner with Okudera-senpai.",
+    entry_summary_5: "Woke up in a strange room."
   },
   ja: {
     entries: "エントリー",
@@ -146,18 +184,56 @@ const TRANSLATIONS = {
     delete_entry: "日記の削除",
     discard_draft: "下書きを破棄",
     save_entry: "日記の保存",
+    save_failed_empty: "空の日記は保存できません。タイトルか本文を入力してください。",
     location: "位置情報",
     attach_photo: "写真を添付",
     movie_phrases: "映画の名台詞",
     loading: "MyDiaryを読み込み中",
     confirm_location: (city) => `位置情報を確認または入力してください：`,
     gps_failed: "GPS取得失敗。手動で位置情報を入力してください (例: 糸守, 東京):",
-    geolocation_unsupported: "位置情報取得に対応していません。手動で入力してください:"
+    geolocation_unsupported: "位置情報取得に対応していません。手動で入力してください:",
+    memo: "メモ",
+    contacts: "連絡先",
+    insert_movie_phrase: "映画の名台詞を挿入：",
+    contact_dialog_title: "連絡先",
+    import_failed: "インポートに失敗しました",
+    original_github: "オリジナルのGitHubプロジェクト",
+    original_screenshots: "オリジナルスクリーンショット",
+    original_assets: (count) => `オリジナルアセット (${count})`,
+    topic_contacts: "緊急時以外かけちゃダメ！",
+    topic_diary: "DIARY",
+    topic_rules: "禁止事項 Ver.5",
+    topic_absolute: "ゼッタイ禁止",
+    memo_no_spending: "無駄つかい禁止！",
+    memo_no_dialects: "訛り禁止！",
+    memo_no_lateness: "遅刻するな！",
+    memo_no_feminine: "女言葉NG！",
+    memo_okudera: "奧寺先輩と馴れ馴れしくするな.....",
+    memo_tsukasa: "司とベタベタするな.....",
+    memo_body_touching: "体を触るな！",
+    memo_bath_eyes: "お風呂に入る時は目をつぶれ！",
+    memo_body_moving: "他人の体を勝手に動かすな！",
+    memo_mitsuha_friends: "みつはの友達と仲良くするな！",
+    memo_boys_prohibited: "男子禁制！",
+    entry_title_1: "バイト",
+    entry_title_2: "東京生活3❤",
+    entry_title_3: "中間テスト開始",
+    entry_title_4: "東京生活2❤",
+    entry_content_1: "東京生活にも慣れてきた。バイトも順調。",
+    entry_content_2: "お台場で奥寺先輩、司、高木とデート（？）をした！めちゃくちゃ楽しかった！",
+    entry_content_3: "全然勉強してないのにテストが始まってしまった。どうしよう。",
+    entry_content_4: "初❤奥寺先輩と東京でディナー。ちょっと緊張したけど、先輩は優しかった！",
+    entry_content_5: "朝起きたら、知らない部屋にいた。夢だと思ったけど...",
+    entry_summary_1: "東京生活にも慣れてきた。",
+    entry_summary_2: "お台場で奥寺先輩、司、高木と。",
+    entry_summary_3: "全然勉強してない...",
+    entry_summary_4: "初❤奥寺先輩と東京でディナー。",
+    entry_summary_5: "朝起きたら、知らない部屋にいた。"
   }
 };
 
 const initialData = {
-  version: 4, // Incremented version to ensure fresh initialization of detailed movie rules
+  version: 6, // Incremented version to ensure Japanese entries are populated
   theme: "taki",
   userName: "立花 瀧",
   locked: false,
@@ -190,6 +266,17 @@ const initialData = {
   contacts: [{ id: 1, name: "宮水 三葉", phone: "090-0000-0000" }],
 };
 
+const initialDataEn = {
+  version: 6,
+  theme: "taki",
+  userName: "立花 瀧",
+  locked: false,
+  topics: initialData.topics,
+  entries: initialData.entries,
+  memos: initialData.memos,
+  contacts: initialData.contacts,
+};
+
 const assetNames = [
   "contacts_bg_mitsuha.png", "contacts_bg_taki.png", "ic_add_a_photo_white_36dp.png", "ic_add_white_24dp.png",
   "ic_add_white_36dp.png", "ic_attach.png", "ic_backspace_black_24dp.png", "ic_backup_white_36dp.png",
@@ -215,16 +302,182 @@ function Icon({ name, alt = "", className = "", style = {} }) {
   return <img className={`icon ${className}`} src={`${A}${name}`} alt={alt} style={style} />;
 }
 
+const defaultTopicTranslationKeys = {
+  "緊急時以外かけちゃダメ！": "topic_contacts",
+  "DIARY": "topic_diary",
+  "禁止事項 Ver.5": "topic_rules",
+  "ゼッタイ禁止": "topic_absolute",
+  "DON'T CALL UNLESS EMERGENCY!": "topic_contacts",
+  "Forbidden Ver.5": "topic_rules",
+  "ABSOLUTELY FORBIDDEN": "topic_absolute"
+};
+
+const getTranslatedTopicTitle = (title, t) => {
+  const key = defaultTopicTranslationKeys[title];
+  return key ? t(key) : title;
+};
+
+const defaultMemoTranslationKeys = {
+  "無駄つかい禁止！": "memo_no_spending",
+  "訛り禁止！": "memo_no_dialects",
+  "遅刻するな！": "memo_no_lateness",
+  "女言葉NG！": "memo_no_feminine",
+  "奧寺先輩と馴れ馴れしくするな.....": "memo_okudera",
+  "司とベタベタするな.....": "memo_tsukasa",
+  "体を触るな！": "memo_body_touching",
+  "お風呂に入る時は目をつぶれ！": "memo_bath_eyes",
+  "他人の体を勝手に動かすな！": "memo_body_moving",
+  "みつはの友達と仲良くするな！": "memo_mitsuha_friends",
+  "男子禁制！": "memo_boys_prohibited",
+  "No spending money!": "memo_no_spending",
+  "No dialects!": "memo_no_dialects",
+  "Don't be late!": "memo_no_lateness",
+  "No feminine language!": "memo_no_feminine",
+  "Don't get too close to Okudera-senpai...": "memo_okudera",
+  "Don't cuddle with Tsukasa...": "memo_tsukasa",
+  "No touching my body!": "memo_body_touching",
+  "Close your eyes when taking a bath!": "memo_bath_eyes",
+  "Don't move other people's bodies without permission!": "memo_body_moving",
+  "Don't hang out with Mitsuha's friends too much!": "memo_mitsuha_friends",
+  "Boys prohibited!": "memo_boys_prohibited"
+};
+
+const getTranslatedMemoText = (text, t) => {
+  return text;
+};
+
+const defaultEntryTranslationKeys = {
+  "バイト": "entry_title_1",
+  "東京生活3❤": "entry_title_2",
+  "中間テスト開始": "entry_title_3",
+  "東京生活2❤": "entry_title_4",
+  "Part-time Job": "entry_title_1",
+  "Tokyo Life 3❤": "entry_title_2",
+  "Midterms Start": "entry_title_3",
+  "Tokyo Life 2❤": "entry_title_4",
+  
+  "東京生活にも慣れてきた。バイトも順調。": "entry_content_1",
+  "お台場で奥寺先輩、司、高木とデート（？）をした！めちゃくちゃ楽しかった！": "entry_content_2",
+  "全然勉強してないのにテストが始まってしまった。どうしよう。": "entry_content_3",
+  "初❤奥寺先輩と東京でディナー。ちょっと緊張したけど、先輩は優しかった！": "entry_content_4",
+  "朝起きたら、知らない部屋にいた。夢だと思ったけど...": "entry_content_5",
+  "Getting used to life in Tokyo. The job is going well.": "entry_content_1",
+  "Date with Okudera-senpai, Tsukasa, and Takagi at Odaiba (?)! It was super fun!": "entry_content_2",
+  "I haven't studied at all but the exams started. What should I do?": "entry_content_3",
+  "First dinner with Okudera-senpai in Tokyo. I was a bit nervous but she was nice!": "entry_content_4",
+  "When I woke up, I was in a strange room. I thought it was a dream...": "entry_content_5",
+
+  "東京生活にも慣れてきた。": "entry_summary_1",
+  "お台場で奥寺先輩、司、高木と。": "entry_summary_2",
+  "全然勉強してない...": "entry_summary_3",
+  "初❤奥寺先輩と東京でディナー。": "entry_summary_4",
+  "朝起きたら、知らない部屋にいた。": "entry_summary_5",
+  "Getting used to life in Tokyo.": "entry_summary_1",
+  "Date at Odaiba with friends.": "entry_summary_2",
+  "Exams started...": "entry_summary_3",
+  "First dinner with Okudera-senpai.": "entry_summary_4",
+  "Woke up in a strange room.": "entry_summary_5"
+};
+
+const getTranslatedEntryField = (val, t) => {
+  return val;
+};
+
 function useDiaryData() {
   const [data, setData] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("mydiary-faithful"));
-      return saved?.version >= initialData.version ? saved : initialData;
+      if (saved) {
+        if (saved.version >= initialData.version) {
+          return saved;
+        }
+        // Safely migrate older versions of the user's data
+        const isJa = navigator.language?.startsWith("ja");
+        const defaultData = isJa ? initialData : initialDataEn;
+        
+        // Merge topics to keep any custom user-added topics
+        const mergedTopics = [...(saved.topics || [])];
+        defaultData.topics.forEach(defaultT => {
+          if (!mergedTopics.some(t => t.id === defaultT.id)) {
+            mergedTopics.push(defaultT);
+          }
+        });
+
+        // Revert any default English entries to Japanese
+        const migratedEntries = (saved.entries || []).map(entry => {
+          if (entry.title === "Part-time Job" || entry.title === "Part-timeJob") {
+            return {
+              ...entry,
+              title: "バイト",
+              content: "東京生活にも慣れてきた。バイトも順調。",
+              summary: "東京生活にも慣れてきた。"
+            };
+          }
+          if (entry.title === "Tokyo Life 3❤") {
+            return {
+              ...entry,
+              title: "東京生活3❤",
+              content: "お台場で奥寺先輩、司、高木とデート（？）をした！めちゃくちゃ楽しかった！",
+              summary: "お台場で奥寺先輩、司、高木と。"
+            };
+          }
+          if (entry.title === "Midterms Start") {
+            return {
+              ...entry,
+              title: "中間テスト開始",
+              content: "全然勉強してないのにテストが始まってしまった。どうしよう。",
+              summary: "全然勉強してない..."
+            };
+          }
+          if (entry.title === "Tokyo Life 2❤") {
+            return {
+              ...entry,
+              title: "東京生活2❤",
+              content: "初❤奥寺先輩と東京でディナー。ちょっと緊張したけど、先輩は優しかった！",
+              summary: "初❤奥寺先輩と東京でディナー。"
+            };
+          }
+          if (entry.content && entry.content.includes("When I woke up, I was in a strange room")) {
+            return {
+              ...entry,
+              content: "朝起きたら、知らない部屋にいた。夢だと思ったけど...",
+              summary: "朝起きたら、知らない部屋にいた。"
+            };
+          }
+          return entry;
+        });
+
+        let migratedUserName = saved.userName;
+        if (saved.userName === "Taki Tachibana") {
+          migratedUserName = "立花 瀧";
+        } else if (saved.userName === "Mitsuha Miyamizu") {
+          migratedUserName = "宮水 三葉";
+        }
+
+        return {
+          ...defaultData,
+          ...saved,
+          userName: migratedUserName,
+          topics: mergedTopics,
+          entries: migratedEntries.length > 0 ? migratedEntries : defaultData.entries,
+          memos: saved.memos || defaultData.memos,
+          contacts: saved.contacts || defaultData.contacts,
+          version: initialData.version
+        };
+      }
+      const isJa = navigator.language?.startsWith("ja");
+      return isJa ? initialData : initialDataEn;
     } catch {
-      return initialData;
+      const isJa = navigator.language?.startsWith("ja");
+      return isJa ? initialData : initialDataEn;
     }
   });
-  useEffect(() => localStorage.setItem("mydiary-faithful", JSON.stringify(data)), [data]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      localStorage.setItem("mydiary-faithful", JSON.stringify(data));
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [data]);
   return [data, setData];
 }
 
@@ -262,8 +515,25 @@ function App() {
 
   const goBack = useCallback(() => {
     if (screenRef.current === "home") return;
+    
+    let popstateFired = false;
+    const onPopStateTemp = () => {
+      popstateFired = true;
+    };
+    
+    window.addEventListener("popstate", onPopStateTemp, { once: true });
     window.history.back();
-  }, []);
+    
+    // Fallback: If no popstate fires (e.g. because browser stack is empty, 
+    // Vite reloaded, or local file system restricts history navigation), 
+    // transition manually.
+    setTimeout(() => {
+      window.removeEventListener("popstate", onPopStateTemp);
+      if (!popstateFired && screenRef.current !== "home") {
+        animatedSetScreen("home", "back");
+      }
+    }, 100);
+  }, [animatedSetScreen]);
 
   useEffect(() => {
     const currentState = window.history.state;
@@ -300,6 +570,27 @@ function App() {
   const [appUnlocked, setAppUnlocked] = useState(false);
   const [securityMode, setSecurityMode] = useState(null); // 'create' | 'remove' | null
 
+  // iOS-style dialog helper state and Promise functions
+  const [iosAlert, setIosAlert] = useState(null);
+
+  const showAlert = useCallback((message, title = "") => {
+    return new Promise((resolve) => {
+      setIosAlert({ type: "alert", title, message, resolve });
+    });
+  }, []);
+
+  const showConfirm = useCallback((message, title = "") => {
+    return new Promise((resolve) => {
+      setIosAlert({ type: "confirm", title, message, resolve });
+    });
+  }, []);
+
+  const showPrompt = useCallback((message, defaultValue = "", title = "") => {
+    return new Promise((resolve) => {
+      setIosAlert({ type: "prompt", title, message, defaultValue, resolve });
+    });
+  }, []);
+
   const theme = THEMES[data.theme] || THEMES.taki;
   const style = {
     "--theme": theme.main,
@@ -308,6 +599,13 @@ function App() {
     "--profile-bg": `url(${theme.profile})`,
     "--contacts-bg": `url(${theme.contacts})`,
   };
+
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute("content", theme.main);
+    }
+  }, [theme]);
 
   const openTopic = (item) => {
     setTopic(item);
@@ -395,6 +693,8 @@ function App() {
                         setEditMode={setEditMode}
                         getTopicCount={getTopicCount}
                         t={t}
+                        showConfirm={showConfirm}
+                        showPrompt={showPrompt}
                       />
                     );
                   case "diary":
@@ -410,6 +710,9 @@ function App() {
                         goHome={goBack}
                         t={t}
                         currentLang={currentLang}
+                        showConfirm={showConfirm}
+                        showPrompt={showPrompt}
+                        showAlert={showAlert}
                       />
                     );
                   case "memo":
@@ -431,6 +734,7 @@ function App() {
                         title={topic?.title || "Contacts"}
                         goHome={goBack}
                         t={t}
+                        showConfirm={showConfirm}
                       />
                     );
                   case "settings":
@@ -448,6 +752,7 @@ function App() {
                           }
                         }}
                         t={t}
+                        showAlert={showAlert}
                       />
                     );
                   case "about":
@@ -526,6 +831,20 @@ function App() {
               />
             )}
           </>
+        )}
+
+        {iosAlert && (
+          <IOSAlertDialog
+            type={iosAlert.type}
+            title={iosAlert.title}
+            message={iosAlert.message}
+            defaultValue={iosAlert.defaultValue}
+            onResolve={(val) => {
+              iosAlert.resolve(val);
+              setIosAlert(null);
+            }}
+            t={t}
+          />
         )}
 
         {splashVisible && <SplashScreen leaving={splashLeaving} />}
@@ -610,7 +929,9 @@ function StatusBar({ locked }) {
       level: batteryManager?.level ?? 1,
       charging: batteryManager?.charging ?? false,
     });
+    let active = true;
     navigator.getBattery?.().then((manager) => {
+      if (!active) return;
       batteryManager = manager;
       updateBattery();
       manager.addEventListener("levelchange", updateBattery);
@@ -624,12 +945,15 @@ function StatusBar({ locked }) {
     }).catch(() => {});
 
     return () => {
+      active = false;
       window.clearInterval(timer);
       window.removeEventListener("online", updateOnline);
       window.removeEventListener("offline", updateOnline);
       network?.removeEventListener?.("change", updateConnection);
-      batteryManager?.removeEventListener("levelchange", updateBattery);
-      batteryManager?.removeEventListener("chargingchange", updateBattery);
+      if (batteryManager) {
+        batteryManager.removeEventListener("levelchange", updateBattery);
+        batteryManager.removeEventListener("chargingchange", updateBattery);
+      }
     };
   }, []);
 
@@ -745,12 +1069,12 @@ function StatusBattery({ percent, charging }) {
   );
 }
 
-function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, getTopicCount, t }) {
+function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, getTopicCount, t, showConfirm, showPrompt }) {
   const [query, setQuery] = useState("");
   const topics = data.topics.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
 
-  const handleDeleteTopic = (topic) => {
-    if (window.confirm(t("delete_topic_confirm", topic.title))) {
+  const handleDeleteTopic = async (topic) => {
+    if (await showConfirm(t("delete_topic_confirm", topic.title))) {
       setData({
         ...data,
         topics: data.topics.filter(t => t.id !== topic.id),
@@ -759,8 +1083,8 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
     }
   };
 
-  const handleRenameTopic = (topic) => {
-    const newName = prompt(t("rename_topic_prompt", topic.title), topic.title);
+  const handleRenameTopic = async (topic) => {
+    const newName = await showPrompt(t("rename_topic_prompt", topic.title), topic.title);
     if (newName && newName.trim()) {
       setData({
         ...data,
@@ -786,6 +1110,7 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
             onDelete={handleDeleteTopic}
             onRename={handleRenameTopic}
             index={idx}
+            t={t}
           />
         ))}
       </section>
@@ -795,7 +1120,7 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
           <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t("search_topics")} placeholder={t("search_topics")} />
         </label>
         <button onClick={() => setEditMode(!editMode)} aria-label={t("edit_topics")} style={{ marginRight: '5px' }}>
-          <Icon name={editMode ? "ic_mode_edit_cancel_white_24dp.png" : "ic_mode_edit_white_24dp.png"} style={{ filter: editMode ? 'none' : 'invert(1)' }} />
+          <Icon name={editMode ? "ic_mode_edit_cancel_white_24dp.png" : "ic_mode_edit_white_24dp.png"} style={{ filter: "invert(1)" }} />
         </button>
         <button onClick={openSettings} aria-label={t("settings_btn")}><Icon name="ic_settings_black_24dp.png" /></button>
       </div>
@@ -803,20 +1128,20 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
   );
 }
 
-function TopicRow({ item, onClick, count, editMode, onDelete, onRename, index = 0 }) {
+const TopicRow = React.memo(function TopicRow({ item, onClick, count, editMode, onDelete, onRename, index = 0, t }) {
   const icon = item.type === "diary" ? "ic_topic_diary.png" : item.type === "contacts" ? "ic_topic_contacts.png" : "ic_topic_memo.png";
   return (
     <div className="topic-row-wrapper anim-stagger-item" style={{ "--stagger-i": index }}>
       <button className="topic-row" onClick={editMode ? undefined : onClick} style={{ flex: 1 }}>
         <Icon name={icon} />
-        <span>{item.title}</span>
+        <span>{getTranslatedTopicTitle(item.title, t)}</span>
         <small>{count}</small>
         {!editMode && <Icon name="ic_keyboard_arrow_right_black_24dp.png" />}
       </button>
       {editMode && (
         <div className="topic-edit-actions" style={{ display: 'flex', gap: '5px', paddingRight: '15px' }}>
           <button onClick={() => onRename(item)} aria-label="Rename topic" style={{ background: 'transparent', padding: '5px' }}>
-            <Icon name="ic_mode_edit_white_24dp.png" style={{ filter: 'invert(0.5)' }} />
+            <Icon name="ic_mode_edit_white_24dp.png" style={{ filter: 'invert(1)' }} />
           </button>
           <button onClick={() => onDelete(item)} aria-label="Delete topic" style={{ background: 'transparent', padding: '5px' }}>
             <Icon name="ic_cancel_black_24dp.png" />
@@ -825,9 +1150,9 @@ function TopicRow({ item, onClick, count, editMode, onDelete, onRename, index = 
       )}
     </div>
   );
-}
+});
 
-function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang }) {
+function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang, showConfirm, showPrompt, showAlert }) {
   const openEntry = (entry) => {
     setSelected(entry);
     setTab("editor");
@@ -846,7 +1171,7 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
           <button className={tab === "calendar" && !photoOverviewOpen ? "active" : ""} onClick={() => { setTab("calendar"); setPhotoOverviewOpen(false); }}>{t("calendar")}</button>
           <button className={tab === "editor" && !photoOverviewOpen ? "active" : ""} onClick={() => { setTab("editor"); setPhotoOverviewOpen(false); }}>{t("diary")}</button>
         </div>
-        <div className="diary-topic-title">{photoOverviewOpen ? t("photo_overview") : title}</div>
+        <div className="diary-topic-title">{photoOverviewOpen ? t("photo_overview") : getTranslatedTopicTitle(title, t)}</div>
       </header>
       
       {photoOverviewOpen ? (
@@ -859,7 +1184,7 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
         <div className="diary-content">
           {tab === "entries" && <EntryList entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
           {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
-          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} />}
+          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} />}
         </div>
       )}
 
@@ -885,6 +1210,19 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
   );
 }
 
+const EntryCard = React.memo(function EntryCard({ entry, openEntry, t, currentLang, index }) {
+  return (
+    <button className="entry-card anim-stagger-item" onClick={() => openEntry(entry)} style={{ "--stagger-i": index }}>
+      <time><b>{entry.day}</b><span>{entry.weekday || new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { weekday: "short" })}</span></time>
+      <div className="entry-copy"><small>{entry.time}</small><strong>{getTranslatedEntryField(entry.title, t) || t("no_title")}</strong><span>{getTranslatedEntryField(entry.summary ?? entry.content ?? entry.location ?? "", t)}</span></div>
+      <div className="entry-icons">
+        <span><Icon name={`ic_weather_${entry.weather}.png`} /><Icon name={`ic_mood_${entry.mood}.png`} /><Icon name="ic_bookmark_border.png" /></span>
+        {entry.photos && entry.photos.length > 0 && <Icon name="ic_attach.png" />}
+      </div>
+    </button>
+  );
+});
+
 function EntryList({ entries, openEntry, t, currentLang }) {
   const grouped = entries.reduce((result, entry) => {
     const month = new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { month: "short" });
@@ -901,14 +1239,14 @@ function EntryList({ entries, openEntry, t, currentLang }) {
           {monthEntries.map((entry) => {
             const i = ++flatIdx;
             return (
-              <button className="entry-card anim-stagger-item" key={entry.id} onClick={() => openEntry(entry)} style={{ "--stagger-i": i }}>
-                <time><b>{entry.day}</b><span>{entry.weekday || new Date(`${entry.date}T00:00:00`).toLocaleDateString(currentLang, { weekday: "short" })}</span></time>
-                <div className="entry-copy"><small>{entry.time}</small><strong>{entry.title || t("no_title")}</strong><span>{entry.summary ?? entry.content ?? entry.location ?? ""}</span></div>
-                <div className="entry-icons">
-                  <span><Icon name={`ic_weather_${entry.weather}.png`} /><Icon name={`ic_mood_${entry.mood}.png`} /><Icon name="ic_bookmark_border.png" /></span>
-                  {entry.photos && entry.photos.length > 0 && <Icon name="ic_attach.png" />}
-                </div>
-              </button>
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                openEntry={openEntry}
+                t={t}
+                currentLang={currentLang}
+                index={i}
+              />
             );
           })}
         </div>
@@ -1086,24 +1424,31 @@ const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
   );
 };
 
-function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
-  const createDraft = () => ({
-    id: Date.now(),
-    date: new Date().toISOString().slice(0, 10),
-    day: new Date().getDate(),
-    time: new Date().toTimeString().slice(0, 5),
-    title: "",
-    content: "",
-    mood: "happy",
-    weather: "sunny",
-    location: "No Location",
-    photos: [],
-    items: [{ id: "text_0", type: "text", value: "" }]
-  });
+function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm, showPrompt, showAlert }) {
+  const createDraft = () => {
+    const d = new Date();
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return {
+      id: Date.now(),
+      date: d.toISOString().slice(0, 10),
+      day: d.getDate(),
+      weekday: weekdays[d.getDay()],
+      time: d.toTimeString().slice(0, 5),
+      title: "",
+      content: "",
+      mood: "happy",
+      weather: "sunny",
+      location: "No Location",
+      photos: [],
+      items: [{ id: "text_0", type: "text", value: "" }]
+    };
+  };
 
   const [draft, setDraft] = useState(entry || createDraft());
   const [items, setItems] = useState([]);
   const [activeTextarea, setActiveTextarea] = useState({ id: null, selectionStart: 0 });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     if (entry) {
@@ -1118,12 +1463,28 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
     }
   }, [entry]);
 
-  const update = (key, value) => setDraft({ ...draft, [key]: value, ...(key === "date" ? { day: new Date(`${value}T00:00:00`).getDate() } : {}) });
+  const update = (key, value) => {
+    if (key === "date") {
+      const d = new Date(`${value}T00:00:00`);
+      const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      setDraft({
+        ...draft,
+        date: value,
+        day: d.getDate(),
+        weekday: weekdays[d.getDay()]
+      });
+    } else {
+      setDraft({ ...draft, [key]: value });
+    }
+  };
 
-  const save = () => {
+  const save = async () => {
     const textValues = items.filter(item => item.type === "text").map(item => item.value);
     const hasContent = textValues.some(v => v.trim()) || items.some(item => item.type === "photo");
-    if (!draft.title.trim() && !hasContent) return;
+    if (!(draft.title || "").trim() && !hasContent) {
+      await showAlert(t("save_failed_empty"));
+      return;
+    }
 
     const photoValues = items.filter(item => item.type === "photo").map(item => item.value);
     const contentText = textValues.join("\n");
@@ -1131,6 +1492,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
 
     const updatedEntry = {
       ...draft,
+      title: (draft.title || "").trim() || t("no_title"),
       content: contentText,
       summary: summaryText,
       items: items,
@@ -1147,15 +1509,15 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
     close();
   };
 
-  const remove = () => {
-    if (window.confirm(t("delete_entry_confirm"))) {
+  const remove = async () => {
+    if (await showConfirm(t("delete_entry_confirm"))) {
       setData({ ...data, entries: data.entries.filter((item) => item.id !== draft.id) });
       close();
     }
   };
 
-  const handleClear = () => {
-    if (window.confirm(t("discard_draft_confirm"))) {
+  const handleClear = async () => {
+    if (await showConfirm(t("discard_draft_confirm"))) {
       setDraft(createDraft());
       setItems([{ id: "text_0", type: "text", value: "" }]);
     }
@@ -1178,24 +1540,26 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
             } catch (err) {
               console.error("Geocoding failed", err);
             }
-            const userLoc = prompt(t("confirm_location", detectedCity || "Itomori"), detectedCity || "Itomori");
+            const userLoc = await showPrompt(t("confirm_location", detectedCity || "Itomori"), detectedCity || "Itomori");
             if (userLoc !== null) {
               update("location", userLoc.trim() || "No Location");
             }
           },
-          (error) => {
+          async (error) => {
             console.error(error);
-            const userLoc = prompt(t("gps_failed"));
+            const userLoc = await showPrompt(t("gps_failed"));
             if (userLoc) {
               update("location", userLoc.trim());
             }
           }
         );
       } else {
-        const userLoc = prompt(t("geolocation_unsupported"));
-        if (userLoc) {
-          update("location", userLoc.trim());
-        }
+        (async () => {
+          const userLoc = await showPrompt(t("geolocation_unsupported"));
+          if (userLoc) {
+            update("location", userLoc.trim());
+          }
+        })();
       }
     }
   };
@@ -1299,17 +1663,15 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
   return (
     <section className="diary-editor">
       <div className="editor-date">
-        <label className="editor-date-control">
+        <button className="editor-date-control" onClick={() => setShowDatePicker(true)} type="button">
           <span>{dateText}</span>
-          <input type="date" value={draft.date} onChange={(event) => update("date", event.target.value)} aria-label="Diary date" />
-        </label>
+        </button>
         <EditorCalendarIcon />
         <b>{draft.day}</b>
-        <label className="editor-time-control">
+        <button className="editor-time-control" onClick={() => setShowTimePicker(true)} type="button">
           <span>{timeText}</span>
           <small>{draft.location === "No Location" ? t("no_location") : draft.location}</small>
-          <input type="time" value={draft.time} onChange={(event) => update("time", event.target.value)} aria-label="Diary time" />
-        </label>
+        </button>
         <EditorClockIcon />
       </div>
       <div className="editor-sheet">
@@ -1353,7 +1715,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
         <>
           <div className="easter-scrim" onClick={() => setShowEasterMenu(false)} />
           <div className="easter-popup">
-            <h4>Insert iconic phrase:</h4>
+            <h4>{t("insert_movie_phrase")}</h4>
             <ul>
               {easterPhrases.map((phrase, idx) => (
                 <li key={idx} onClick={() => {
@@ -1389,6 +1751,32 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang }) {
         <button onClick={handleClear} title={t("discard_draft")}><Icon name="ic_clear_white_24dp.png" /></button>
         <button onClick={save} title={t("save_entry")}><Icon name="ic_save_white_24dp.png" /></button>
       </BottomBar>
+
+      {showDatePicker && (
+        <IOSDatePickerSheet
+          value={draft.date}
+          onClose={() => setShowDatePicker(false)}
+          onSave={(newDate) => {
+            update("date", newDate);
+            setShowDatePicker(false);
+          }}
+          t={t}
+          currentLang={currentLang}
+        />
+      )}
+
+      {showTimePicker && (
+        <IOSTimePickerSheet
+          value={draft.time}
+          onClose={() => setShowTimePicker(false)}
+          onSave={(newTime) => {
+            update("time", newTime);
+            setShowTimePicker(false);
+          }}
+          t={t}
+          currentLang={currentLang}
+        />
+      )}
     </section>
   );
 }
@@ -1430,7 +1818,7 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
 
   return (
     <main className="screen memo-screen">
-      <NativeTitle title={title} goHome={goHome}>
+      <NativeTitle title={getTranslatedTopicTitle(title, t)} goHome={goHome}>
         <button onClick={() => setEditing(!editing)}><Icon name={editing ? "ic_mode_edit_cancel_white_24dp.png" : "ic_mode_edit_white_24dp.png"} /></button>
       </NativeTitle>
       {editing && <div className="memo-add"><input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && add()} placeholder={t("add")} /><button onClick={add}><Icon name="ic_add_white_24dp.png" /></button></div>}
@@ -1439,7 +1827,7 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
           <label key={memo.id} className={`${memo.checked ? "checked" : ""} anim-stagger-item`} style={{ "--stagger-i": idx }}>
             <Icon name="ic_memo_dot_24dp.png" />
             <input type="checkbox" checked={memo.checked} onChange={() => setData({ ...data, memos: data.memos.map((item) => item.id === memo.id ? { ...item, checked: !item.checked } : item) })} />
-            <span>{memo.text}</span>
+            <span>{getTranslatedMemoText(memo.text, t)}</span>
             {editing && <button onClick={() => setData({ ...data, memos: data.memos.filter((item) => item.id !== memo.id) })}><Icon name="ic_cancel_black_24dp.png" /></button>}
           </label>
         ))}
@@ -1448,7 +1836,7 @@ function Memo({ data, setData, topicId, title, goHome, t }) {
   );
 }
 
-function Contacts({ data, setData, title, goHome, t }) {
+function Contacts({ data, setData, title, goHome, t, showConfirm }) {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", phone: "" });
@@ -1462,8 +1850,8 @@ function Contacts({ data, setData, title, goHome, t }) {
     setAdding(false);
   };
 
-  const deleteContact = (contactId) => {
-    if (window.confirm(t("delete_contact_confirm"))) {
+  const deleteContact = async (contactId) => {
+    if (await showConfirm(t("delete_contact_confirm"))) {
       setData({ ...data, contacts: data.contacts.filter(c => c.id !== contactId) });
     }
   };
@@ -1472,8 +1860,13 @@ function Contacts({ data, setData, title, goHome, t }) {
     <main className="screen contacts-screen">
       <header className="contacts-header">
         <button className="contacts-back" onClick={goHome} aria-label="Back">‹</button>
-        <span className="contacts-title">{title}</span>
-        <button className="contacts-add" onClick={() => setAdding(true)} aria-label={t("add_contact")}><Icon name="ic_add_white_24dp.png" /></button>
+        <span className="contacts-title">{getTranslatedTopicTitle(title, t)}</span>
+        <button className="contacts-add" onClick={() => setAdding(true)} aria-label={t("add_contact")}>
+          <svg viewBox="0 0 24 24" style={{ width: '22px', height: '22px', stroke: 'currentColor', fill: 'none', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
         <label className="native-search"><Icon name="ic_search_white_18dp.png" /><input value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       </header>
       <div className="letters">A<br />B<br />C<br />D<br />E<br />F<br />G<br />H<br />I<br />J<br />K<br />L<br />M<br />N<br />O<br />P<br />Q<br />R<br />S<br />T<br />U<br />V<br />W<br />X<br />Y<br />Z</div>
@@ -1490,7 +1883,16 @@ function Contacts({ data, setData, title, goHome, t }) {
           </div>
         ))}
       </section>
-      {adding && <NativeDialog title="Contact" close={() => setAdding(false)}><input placeholder={t("name")} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /><input placeholder={t("phone")} value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /><button onClick={save}>OK</button></NativeDialog>}
+      {adding && (
+        <NativeDialog title={t("contact_dialog_title")} close={() => setAdding(false)}>
+          <input placeholder={t("name")} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+          <input placeholder={t("phone")} value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <button onClick={() => setAdding(false)} style={{ color: '#888' }}>{t("cancel")}</button>
+            <button onClick={save} style={{ color: 'var(--theme-dark)', fontWeight: 'bold' }}>{t("ok")}</button>
+          </div>
+        </NativeDialog>
+      )}
     </main>
   );
 }
@@ -1608,7 +2010,7 @@ function PhotoViewerModal({ item, close, viewEntry, t, currentLang }) {
   );
 }
 
-function Settings({ data, setData, goHome, openAbout, onToggleLock, t }) {
+function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert }) {
   const fileRef = useRef(null);
   const exportData = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -1622,8 +2024,12 @@ function Settings({ data, setData, goHome, openAbout, onToggleLock, t }) {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      try { setData(JSON.parse(reader.result)); } catch { window.alert("Import failed"); }
+    reader.onload = async () => {
+      try {
+        setData(JSON.parse(reader.result));
+      } catch {
+        await showAlert(t("import_failed"));
+      }
     };
     reader.readAsText(file);
   };
@@ -1666,10 +2072,10 @@ function About({ goHome, t }) {
       <div className="about-content">
         <img className="about-logo" src={import.meta.env.BASE_URL + "assets/ic_launcher-web.png"} alt="MyDiary" />
         <h2>MyDiary</h2><p>Responsive web port of the original Android application.</p>
-        <a href="https://github.com/DaxiaK/MyDiary" target="_blank" rel="noreferrer">Original GitHub project</a>
-        <h3>Original screenshots</h3>
+        <a href="https://github.com/DaxiaK/MyDiary" target="_blank" rel="noreferrer">{t("original_github")}</a>
+        <h3>{t("original_screenshots")}</h3>
         <div className="screen-gallery">{Array.from({ length: 7 }, (_, index) => <img key={index} src={`${import.meta.env.BASE_URL}assets/screenshots/s_${index}.png`} alt="" />)}</div>
-        <h3>Original assets ({assetNames.length})</h3>
+        <h3>{t("original_assets", assetNames.length)}</h3>
         <div className="asset-gallery">{assetNames.map((name) => <img key={name} src={`${A}${name}`} title={name} alt="" />)}</div>
       </div>
     </main>
@@ -1711,7 +2117,7 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
     setTimeout(() => setIsShaking(false), 500);
   };
 
-  const handleKeyPress = (num) => {
+  const handleKeyPress = useCallback((num) => {
     if (pin.length >= 4) return;
     setErrorMsg("");
     const nextPin = pin + num;
@@ -1752,14 +2158,28 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
         }
       }, 300);
     }
-  };
+  }, [pin, expectedPin, mode, onComplete, tempPin, t]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (pin.length > 0) {
       setPin(pin.slice(0, -1));
       setErrorMsg("");
     }
-  };
+  }, [pin]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key >= "0" && e.key <= "9") {
+        handleKeyPress(parseInt(e.key, 10));
+      } else if (e.key === "Backspace") {
+        handleBackspace();
+      } else if (e.key === "Escape" && onCancel) {
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyPress, handleBackspace, onCancel]);
 
   return (
     <div className="lock-screen">
@@ -1799,6 +2219,272 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
         <button className="lock-key action" onClick={handleBackspace}>
           <Icon name="ic_backspace_black_24dp.png" alt="Backspace" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function IOSAlertDialog({ type, title, message, defaultValue = "", onResolve, t }) {
+  const [inputValue, setInputValue] = useState(defaultValue);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (type === "prompt" && inputRef.current) {
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [type]);
+
+  const handleCancel = () => {
+    if (type === "alert") {
+      onResolve(true);
+    } else {
+      onResolve(null);
+    }
+  };
+
+  const handleConfirm = () => {
+    if (type === "prompt") {
+      onResolve(inputValue);
+    } else {
+      onResolve(true);
+    }
+  };
+
+  const isDestructive = message && (
+    message.includes("delete") || 
+    message.includes("discard") ||
+    message.includes("削除") || 
+    message.includes("破記") ||
+    message.includes("破棄")
+  );
+
+  return (
+    <div className="ios-alert-scrim" onClick={(e) => e.stopPropagation()}>
+      <div className="ios-alert-dialog">
+        <div className="ios-alert-content">
+          {title && <h3 className="ios-alert-title">{title}</h3>}
+          {message && <p className="ios-alert-message">{message}</p>}
+          {type === "prompt" && (
+            <input
+              ref={inputRef}
+              className="ios-alert-input"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleConfirm();
+                } else if (e.key === "Escape") {
+                  handleCancel();
+                }
+              }}
+              aria-label="Input field"
+            />
+          )}
+        </div>
+        <div className="ios-alert-buttons">
+          {type !== "alert" && (
+            <button className="ios-alert-btn ios-alert-btn-cancel" onClick={handleCancel}>
+              {t("cancel")}
+            </button>
+          )}
+          <button 
+            className={`ios-alert-btn ios-alert-btn-ok ${isDestructive ? "destructive" : ""}`} 
+            onClick={handleConfirm}
+          >
+            {t("ok")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IOSPickerWheel({ options, value, onChange }) {
+  const containerRef = useRef(null);
+  const itemHeight = 36; // px
+  const isUserScrollingRef = useRef(false);
+  const scrollTimerRef = useRef(null);
+  const lastValueRef = useRef(value);
+
+  // Only sync scroll to value when value changes externally (not from scroll)
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const idx = options.indexOf(value);
+    if (idx === -1) return;
+    // If value changed externally (not via user scroll), snap position
+    if (!isUserScrollingRef.current && lastValueRef.current !== value) {
+      containerRef.current.scrollTop = idx * itemHeight;
+    }
+    lastValueRef.current = value;
+  }, [value, options, itemHeight]);
+
+  // On mount, always snap to correct position
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const idx = options.indexOf(value);
+    if (idx !== -1) {
+      containerRef.current.scrollTop = idx * itemHeight;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScroll = (e) => {
+    isUserScrollingRef.current = true;
+    clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      isUserScrollingRef.current = false;
+      if (!containerRef.current) return;
+      const scrollTop = containerRef.current.scrollTop;
+      const idx = Math.round(scrollTop / itemHeight);
+      const clampedIdx = Math.max(0, Math.min(idx, options.length - 1));
+      // Snap to nearest item
+      containerRef.current.scrollTop = clampedIdx * itemHeight;
+      const selectedValue = options[clampedIdx];
+      if (selectedValue !== lastValueRef.current) {
+        lastValueRef.current = selectedValue;
+        onChange(selectedValue);
+      }
+    }, 80);
+  };
+
+  return (
+    <div className="ios-picker-wheel-wrapper">
+      <div
+        className="ios-picker-wheel"
+        ref={containerRef}
+        onScroll={handleScroll}
+      >
+        <div className="ios-picker-wheel-spacer" />
+        {options.map((opt, index) => (
+          <div
+            key={`${opt}-${index}`}
+            className={`ios-picker-wheel-item ${opt === value ? "selected" : ""}`}
+            onClick={() => {
+              if (containerRef.current) {
+                isUserScrollingRef.current = false;
+                containerRef.current.scrollTo({
+                  top: index * itemHeight,
+                  behavior: "smooth",
+                });
+                setTimeout(() => onChange(opt), 200);
+              }
+            }}
+          >
+            {opt}
+          </div>
+        ))}
+        <div className="ios-picker-wheel-spacer" />
+      </div>
+    </div>
+  );
+}
+
+function IOSDatePickerSheet({ value, onClose, onSave, t, currentLang }) {
+  const years = Array.from({ length: 26 }, (_, i) => String(2010 + i));
+  // iOS 7 style: full month names
+  const months = currentLang === "ja"
+    ? ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+    : ["January", "February", "March", "April", "May", "June",
+       "July", "August", "September", "October", "November", "December"];
+
+  const initialDate = new Date(`${value}T00:00:00`);
+  const [selectedYear, setSelectedYear] = useState(String(initialDate.getFullYear()));
+  const [selectedMonth, setSelectedMonth] = useState(months[initialDate.getMonth()]);
+
+  const monthIdx = months.indexOf(selectedMonth);
+  const daysInMonth = new Date(parseInt(selectedYear, 10), monthIdx + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+
+  // Safe day state initialization
+  const initialDayVal = String(initialDate.getDate());
+  const [selectedDay, setSelectedDay] = useState(initialDayVal);
+
+  // Clamping days when month length changes
+  useEffect(() => {
+    const dayInt = parseInt(selectedDay, 10);
+    if (dayInt > daysInMonth) {
+      setSelectedDay(String(daysInMonth));
+    }
+  }, [selectedYear, selectedMonth, daysInMonth, selectedDay]);
+
+  const handleDone = () => {
+    const yearStr = selectedYear;
+    const monthIndex = months.indexOf(selectedMonth);
+    const monthStr = String(monthIndex + 1).padStart(2, "0");
+    const dayStr = String(Math.min(parseInt(selectedDay, 10), daysInMonth)).padStart(2, "0");
+    onSave(`${yearStr}-${monthStr}-${dayStr}`);
+  };
+
+  return (
+    <div className="ios-picker-scrim" onClick={onClose}>
+      <div className="ios-picker-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="ios-picker-header">
+          <button className="ios-picker-cancel-btn" onClick={onClose}>{t("cancel")}</button>
+          <span className="ios-picker-title">{currentLang === "ja" ? "日付の選択" : "Select Date"}</span>
+          <button className="ios-picker-done-btn" onClick={handleDone}>{t("ok")}</button>
+        </div>
+        <div className="ios-picker-wheels-container">
+          <div className="ios-picker-selection-indicator" />
+          <IOSPickerWheel options={months} value={selectedMonth} onChange={setSelectedMonth} />
+          <IOSPickerWheel options={days} value={selectedDay} onChange={setSelectedDay} />
+          <IOSPickerWheel options={years} value={selectedYear} onChange={setSelectedYear} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IOSTimePickerSheet({ value, onClose, onSave, t, currentLang }) {
+  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
+  const periods = ["AM", "PM"];
+
+  // Parse initial value (value is "HH:MM", e.g. "08:23" or "20:23")
+  const [initialH24, initialM] = value.split(":").map(Number);
+  const initialPeriod = initialH24 >= 12 ? "PM" : "AM";
+  let initialH12 = initialH24 % 12;
+  if (initialH12 === 0) initialH12 = 12;
+
+  const [selectedHour, setSelectedHour] = useState(String(initialH12).padStart(2, "0"));
+  const [selectedMinute, setSelectedMinute] = useState(String(initialM).padStart(2, "0"));
+  const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
+
+  const handleDone = () => {
+    let h12 = parseInt(selectedHour, 10);
+    const m = selectedMinute;
+    const period = selectedPeriod;
+
+    let h24 = h12;
+    if (period === "PM" && h12 !== 12) {
+      h24 += 12;
+    } else if (period === "AM" && h12 === 12) {
+      h24 = 0;
+    }
+
+    const h24Str = String(h24).padStart(2, "0");
+    onSave(`${h24Str}:${m}`);
+  };
+
+  return (
+    <div className="ios-picker-scrim" onClick={onClose}>
+      <div className="ios-picker-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="ios-picker-header">
+          <button className="ios-picker-cancel-btn" onClick={onClose}>{t("cancel")}</button>
+          <span className="ios-picker-title">{currentLang === "ja" ? "時刻の選択" : "Select Time"}</span>
+          <button className="ios-picker-done-btn" onClick={handleDone}>{t("ok")}</button>
+        </div>
+        <div className="ios-picker-wheels-container">
+          <div className="ios-picker-selection-indicator" />
+          <IOSPickerWheel options={hours} value={selectedHour} onChange={setSelectedHour} />
+          <IOSPickerWheel options={minutes} value={selectedMinute} onChange={setSelectedMinute} />
+          <IOSPickerWheel options={periods} value={selectedPeriod} onChange={setSelectedPeriod} />
+        </div>
       </div>
     </div>
   );

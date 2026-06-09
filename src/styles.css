@@ -1,5 +1,5 @@
 :root {
-  font-family: Roboto, "Noto Sans", Arial, sans-serif;
+  font-family: "Outfit", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Roboto, "Noto Sans", Arial, sans-serif;
   color: #111;
   background: #d9d9d9;
   font-synthesis: none;
@@ -252,11 +252,11 @@ button { border: 0; cursor: pointer; }
 .memo-list { padding: 8px 15px; flex: 1; min-height: 0; overflow-y: auto; }.memo-list label { min-height: 42px; display: grid; grid-template-columns: 11px 20px 1fr 26px; align-items: center; gap: 5px; border-bottom: 1px solid #cacaca; color: #6e98af; font-size: 13px; }
 .memo-list label > .icon { width: 9px; height: 9px; opacity: .65; }.memo-list label input { opacity: 0; width: 1px; }.memo-list label.checked span { color: #a8c4d3; text-decoration: line-through; }.memo-list label button { display: grid; place-items: center; background: transparent; }.memo-list label button .icon { width: 18px; height: 18px; }
 .contacts-screen { padding-bottom: 0; background: var(--contacts-bg) center/cover; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-.contacts-header { position: relative; height: 96px; padding: 7px 10px 10px; display: grid; grid-template-areas: "back title add" "search search search"; grid-template-columns: 35px minmax(0, 1fr) 35px; grid-template-rows: 39px 30px; align-items: center; color: #fff; background: rgba(255,255,255,.72); box-shadow: 0 3px 6px rgba(0,0,0,.22); }
-.contacts-back { grid-area: back; width: 35px; height: 35px; padding: 0; color: #fff; background: transparent; font-size: 32px; line-height: 28px; transition: transform .15s ease, opacity .15s ease; }
+.contacts-header { position: relative; height: 96px; padding: 7px 10px 10px; display: grid; grid-template-areas: "back title add" "search search search"; grid-template-columns: 35px minmax(0, 1fr) 35px; grid-template-rows: 39px 30px; align-items: center; color: var(--theme-dark); background: rgba(255,255,255,.72); box-shadow: 0 3px 6px rgba(0,0,0,.22); }
+.contacts-back { grid-area: back; width: 35px; height: 35px; padding: 0; color: var(--theme-dark); background: transparent; font-size: 32px; line-height: 28px; transition: transform .15s ease, opacity .15s ease; }
 .contacts-back:active { transform: scale(.85); opacity: .6; }
-.contacts-title { grid-area: title; min-width: 0; padding: 0 8px; overflow: hidden; text-align: center; text-overflow: ellipsis; text-shadow: 1px 1px 3px #444; white-space: nowrap; font-size: 17px; }
-.contacts-add { grid-area: add; width: 35px; height: 35px; display: grid; place-items: center; background: transparent; }
+.contacts-title { grid-area: title; min-width: 0; padding: 0 8px; overflow: hidden; text-align: center; text-overflow: ellipsis; text-shadow: none; font-weight: 600; color: var(--theme-dark); white-space: nowrap; font-size: 17px; }
+.contacts-add { grid-area: add; width: 35px; height: 35px; display: grid; place-items: center; background: transparent; color: var(--theme-dark); }
 .contacts-header .native-search { grid-area: search; width: 100%; }
 .letters { position: absolute; left: 0; top: 96px; bottom: 0; width: 31px; padding-top: 8px; color: #fff; background: rgba(75,105,120,.35); text-align: center; font-size: 9px; line-height: calc((100vh - 128px) / 26); text-shadow: 1px 1px 2px #444; }
 .contact-list { margin-left: 31px; padding: 10px; background: rgba(255,255,255,.92); flex: 1; min-height: 0; overflow-y: auto; }
@@ -650,5 +650,351 @@ button { border: 0; cursor: pointer; }
 .day-grid button.selected-cell {
   border: 1.5px solid var(--theme);
 }
+
+/* Native Browser / OS Enhancements for iOS styling */
+.topic-list,
+.entry-list,
+.calendar-view,
+.settings-content,
+.about-content,
+.contact-list,
+.memo-list {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+button,
+.bottom-bar,
+.status-bar,
+.lock-key,
+.profile-header,
+.native-segmented,
+.letters {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== iOS Styled Dialogs (iOS 7/8/9 Style) ===== */
+.ios-alert-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  animation: ios-scrim-fade-in 0.25s ease both;
+}
+
+.ios-alert-dialog {
+  width: 270px;
+  background: rgba(248, 248, 248, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: center;
+  animation: ios-alert-pop 0.28s cubic-bezier(0.1, 0.8, 0.25, 1) both;
+}
+
+.ios-alert-content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ios-alert-title {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #030303;
+  line-height: 22px;
+}
+
+.ios-alert-message {
+  margin: 4px 0 0 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #030303;
+  line-height: 16px;
+}
+
+.ios-alert-input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px 8px;
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #000;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ios-alert-buttons {
+  display: flex;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.15);
+  height: 44px;
+}
+
+.ios-alert-btn {
+  flex: 1;
+  height: 44px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  color: #007af5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  transition: background-color 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ios-alert-btn:active {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.ios-alert-btn-cancel {
+  border-right: 0.5px solid rgba(0, 0, 0, 0.15);
+}
+
+.ios-alert-btn-ok {
+  font-weight: 600;
+}
+
+.ios-alert-btn-ok.destructive {
+  color: #ff3b30;
+}
+
+@keyframes ios-scrim-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ios-alert-pop {
+  from { opacity: 0; transform: scale(1.18); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-alert-scrim,
+  .ios-alert-dialog {
+    animation: none !important;
+  }
+}
+
+/* ===== iOS 7 Scroll Picker Wheels ===== */
+.ios-picker-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 280;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-end;
+  animation: ios-scrim-fade-in 0.25s ease both;
+}
+
+.ios-picker-panel {
+  width: 100%;
+  background: rgba(248, 248, 248, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top-left-radius: 13px;
+  border-top-right-radius: 13px;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ios-picker-slide-up 0.28s cubic-bezier(0.1, 0.8, 0.25, 1) both;
+}
+
+@keyframes ios-picker-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.ios-picker-header {
+  height: 44px;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: rgba(248, 248, 248, 0.9);
+}
+
+.ios-picker-cancel-btn, .ios-picker-done-btn {
+  background: transparent;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  color: #007af5;
+  cursor: pointer;
+  padding: 8px 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-picker-done-btn {
+  font-weight: 600;
+}
+
+.ios-picker-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #030303;
+}
+
+.ios-picker-wheels-container {
+  position: relative;
+  height: 216px;
+  display: flex;
+  justify-content: center;
+  background: #f7f7f7;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+/* Wrapper handles flex sizing and the fade overlay via ::before/::after */
+.ios-picker-wheel-wrapper {
+  flex: 1;
+  position: relative;
+  height: 216px;
+  overflow: hidden;
+}
+
+/* Fade top edge */
+.ios-picker-wheel-wrapper::before,
+.ios-picker-wheel-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 90px;
+  z-index: 2;
+  pointer-events: none; /* let scroll events pass through */
+}
+.ios-picker-wheel-wrapper::before {
+  top: 0;
+  background: linear-gradient(to bottom,
+    rgba(247,247,247,1) 0%,
+    rgba(247,247,247,0.6) 60%,
+    rgba(247,247,247,0) 100%
+  );
+}
+.ios-picker-wheel-wrapper::after {
+  bottom: 0;
+  background: linear-gradient(to top,
+    rgba(247,247,247,1) 0%,
+    rgba(247,247,247,0.6) 60%,
+    rgba(247,247,247,0) 100%
+  );
+}
+
+/* Date picker: Month col wider, Day and Year narrower */
+.ios-picker-wheels-container .ios-picker-wheel-wrapper:nth-child(2) {
+  flex: 2.4; /* Month */
+}
+.ios-picker-wheels-container .ios-picker-wheel-wrapper:nth-child(3) {
+  flex: 0.9; /* Day */
+}
+.ios-picker-wheels-container .ios-picker-wheel-wrapper:nth-child(4) {
+  flex: 1.2; /* Year */
+}
+
+/* Time picker: equal thirds */
+.ios-picker-wheels-time .ios-picker-wheel-wrapper {
+  flex: 1 !important;
+}
+
+.ios-picker-wheel {
+  width: 100%;
+  height: 216px;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none; /* Firefox */
+  text-align: center;
+  /* NO mask-image here — it blocks scroll events in WebKit */
+}
+
+.ios-picker-wheel::-webkit-scrollbar {
+  display: none; /* Safari / Chrome */
+}
+
+.ios-picker-wheel-spacer {
+  height: 90px; /* 2.5 items — centers the selected row */
+  flex-shrink: 0;
+}
+
+.ios-picker-wheel-item {
+  height: 36px;
+  line-height: 36px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  color: #9a9a9a;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color 0.15s ease, font-size 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+}
+
+.ios-picker-wheel-item.selected {
+  color: #000;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.ios-picker-selection-indicator {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 90px; /* aligned to the selected row */
+  height: 36px;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.18);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Clear button overrides for editor control buttons */
+.editor-date-control, .editor-time-control {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-date-control:hover, .editor-time-control:hover {
+  opacity: 0.85;
+}
+
+
 
 
