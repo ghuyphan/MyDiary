@@ -521,72 +521,7 @@ function useDiaryData() {
   return [data, setData];
 }
 
-const playChime = () => {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(880, now);
-    osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.35);
-    
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(1100, now);
-    osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.4);
-    
-    gainNode.gain.setValueAtTime(0.001, now);
-    gainNode.gain.linearRampToValueAtTime(0.12, now + 0.05);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-    
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.7);
-    osc2.stop(now + 0.7);
-  } catch (e) {
-    console.warn("Web Audio failed", e);
-  }
-};
 
-const playWriteSound = () => {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
-    const bufferSize = ctx.sampleRate * 0.12;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1000, now);
-    filter.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
-    filter.Q.value = 3;
-    
-    const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(0.001, now);
-    gainNode.gain.linearRampToValueAtTime(0.06, now + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    
-    noise.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    noise.start(now);
-    noise.stop(now + 0.12);
-  } catch (e) {}
-};
 
 function App() {
   const [data, setData] = useDiaryData();
@@ -602,10 +537,22 @@ function App() {
   const [overlayActive, setOverlayActive] = useState(false);
   const [overlayTheme, setOverlayTheme] = useState("taki");
 
+  // Save celebration: brief comet/sparkle burst after saving a diary
+  const [showSaveCelebration, setShowSaveCelebration] = useState(false);
+  const saveCelebrationTimerRef = useRef(null);
+
+  const triggerSaveCelebration = useCallback(() => {
+    window.clearTimeout(saveCelebrationTimerRef.current);
+    setShowSaveCelebration(true);
+    saveCelebrationTimerRef.current = window.setTimeout(() => {
+      setShowSaveCelebration(false);
+    }, 2800);
+  }, []);
+
   const triggerOverlay = useCallback((themeName) => {
     setOverlayTheme(themeName || data.theme);
     setOverlayActive(true);
-    playChime();
+
   }, [data.theme]);
 
   const animatedSetScreen = useCallback((next, direction = "forward") => {
@@ -792,7 +739,7 @@ function App() {
   return (
     <div className="site" style={style}>
       <div className="android-app">
-        <StatusBar locked={data.locked} activeScreen={screen} />
+        <StatusBar locked={data.locked} activeScreen={screen} showingLock={showLockScreen} />
         {showLockScreen ? (
           <LockScreen
             t={t}
@@ -856,6 +803,7 @@ function App() {
                         showPrompt={showPrompt}
                         showAlert={showAlert}
                         triggerOverlay={triggerOverlay}
+                        onSaved={triggerSaveCelebration}
                       />
                     );
                   case "memo":
@@ -997,6 +945,13 @@ function App() {
           onComplete={() => setOverlayActive(false)}
         />
 
+        {/* Brief sparkle burst shown only after saving a diary entry */}
+        {showSaveCelebration && (
+          <div className="save-celebration-overlay" aria-hidden="true">
+            <CometBackground active={true} burstMode={true} speed={1.4} />
+          </div>
+        )}
+
         {splashVisible && <SplashScreen leaving={splashLeaving} />}
       </div>
     </div>
@@ -1056,7 +1011,7 @@ function useSwipeBack(callbackRef) {
   }, [callbackRef]);
 }
 
-function StatusBar({ locked, activeScreen }) {
+function StatusBar({ locked, activeScreen, showingLock }) {
   const [time, setTime] = useState(() => new Date());
   const [online, setOnline] = useState(() => navigator.onLine);
   const [connection, setConnection] = useState(() => navigator.connection?.effectiveType || "4g");
@@ -1112,7 +1067,7 @@ function StatusBar({ locked, activeScreen }) {
   const batteryPercent = Math.round(battery.level * 100);
 
   return (
-    <div className={`status-bar screen-${activeScreen}`}>
+    <div className={`status-bar screen-${activeScreen}${showingLock ? " screen-lock" : ""}`}>
       <div className="status-left">
         {online ? (
           <>
@@ -1304,7 +1259,7 @@ const TopicRow = React.memo(function TopicRow({ item, onClick, count, editMode, 
   );
 });
 
-function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay }) {
+function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHome, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay, onSaved }) {
   const openEntry = (entry) => {
     setSelected(entry);
     setTab("editor");
@@ -1335,7 +1290,7 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
         <div className="diary-content">
           {tab === "entries" && <EntryList entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
           {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
-          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} triggerOverlay={triggerOverlay} />}
+          {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} triggerOverlay={triggerOverlay} onSaved={onSaved} />}
         </div>
       )}
 
@@ -1650,7 +1605,7 @@ const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
   );
 };
 
-function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay }) {
+function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm, showPrompt, showAlert, triggerOverlay, onSaved }) {
   const createDraft = () => {
     const d = new Date();
     const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -1732,9 +1687,12 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
         ? data.entries.map((item) => item.id === draft.id ? updatedEntry : item)
         : [updatedEntry, ...data.entries]
     });
-    playWriteSound();
+
     if (triggerOverlay) {
       triggerOverlay();
+    }
+    if (onSaved) {
+      onSaved();
     }
     close();
   };
@@ -2280,7 +2238,7 @@ function FakeCallScreen({ contact, close, t }) {
       )}
       <div className="call-sky" />
       <div className="call-vignette" />
-      <CometBackground active={true} speed={1.3} cometFrequency={2800} />
+      {/* Comet removed from call screen – sky + vignette provide atmosphere */}
       <header className="call-simulation-label">{t("simulated_call")}</header>
       <div className="call-contact">
         <span className="call-avatar"><Icon name="ic_person_picture_default.png" /></span>
@@ -2645,7 +2603,7 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
 
   return (
     <div className="lock-screen">
-      <CometBackground active={true} speed={0.7} cometFrequency={4500} />
+      {/* Comet removed from lock screen – shown only after saving a diary */}
       <div className="lock-header">
         <h2>{message}</h2>
         <p style={{ color: "#ff8b80" }}>{errorMsg}</p>

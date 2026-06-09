@@ -1,6 +1,15 @@
 import React, { useEffect, useRef } from "react";
 
-export default function CometBackground({ active = true, speed = 1, cometFrequency = 6000 }) {
+/**
+ * CometBackground
+ *
+ * Props:
+ *   active      – if false, nothing is rendered at all
+ *   burstMode   – if true, spawns comets rapidly for a short burst (used after save)
+ *   speed       – animation speed multiplier
+ *   cometFrequency – ms between comet spawns (ignored in burstMode)
+ */
+export default function CometBackground({ active = true, burstMode = false, speed = 1, cometFrequency = 6000 }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -15,7 +24,7 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
     let width = (canvas.width = canvas.offsetWidth);
     let height = (canvas.height = canvas.offsetHeight);
 
-    // Star Class
+    // Star Class – subtle twinkling background stars
     class Star {
       constructor() {
         this.reset();
@@ -24,9 +33,9 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       reset() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.size = Math.random() * 1.5;
+        this.size = Math.random() * 1.2;
         this.alpha = Math.random();
-        this.twinkleSpeed = 0.005 + Math.random() * 0.015;
+        this.twinkleSpeed = 0.004 + Math.random() * 0.01;
       }
 
       update() {
@@ -37,7 +46,7 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       }
 
       draw() {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, this.alpha)})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.05, this.alpha)})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -52,7 +61,7 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
         this.color = color;
         this.size = size;
         this.alpha = 1.0;
-        this.decay = 0.02 + Math.random() * 0.03;
+        this.decay = 0.025 + Math.random() * 0.03;
       }
 
       update() {
@@ -67,6 +76,52 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       }
     }
 
+    // Sparkle burst particle for save celebration
+    class Sparkle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height * 0.6;
+        this.size = 1.5 + Math.random() * 2;
+        this.alpha = 1;
+        this.decay = 0.012 + Math.random() * 0.018;
+        this.vx = (Math.random() - 0.5) * 0.8;
+        this.vy = -0.3 - Math.random() * 0.6;
+        const colors = ["#ffffff", "#ffe8f0", "#c8e8ff", "#ffd4e8", "#b8f0ff"];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+      }
+
+      draw() {
+        const a = Math.max(0, this.alpha);
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.fillStyle = this.color;
+        // Draw a small 4-pointed star
+        ctx.beginPath();
+        const s = this.size;
+        ctx.moveTo(this.x, this.y - s);
+        ctx.lineTo(this.x + s * 0.25, this.y - s * 0.25);
+        ctx.lineTo(this.x + s, this.y);
+        ctx.lineTo(this.x + s * 0.25, this.y + s * 0.25);
+        ctx.lineTo(this.x, this.y + s);
+        ctx.lineTo(this.x - s * 0.25, this.y + s * 0.25);
+        ctx.lineTo(this.x - s, this.y);
+        ctx.lineTo(this.x - s * 0.25, this.y - s * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      get dead() {
+        return this.alpha <= 0;
+      }
+    }
+
     // Comet Class (Shooting Star)
     class Comet {
       constructor() {
@@ -74,15 +129,12 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       }
 
       reset() {
-        // Start from top-right region
         this.x = width * 0.4 + Math.random() * width * 0.7;
         this.y = -50 - Math.random() * 100;
-        this.length = 80 + Math.random() * 120;
-        this.angle = Math.PI * 0.75 + (Math.random() - 0.5) * 0.15; // diagonal down-left
+        this.angle = Math.PI * 0.75 + (Math.random() - 0.5) * 0.15;
         this.speedX = Math.cos(this.angle) * (6 + Math.random() * 4) * speed;
         this.speedY = Math.sin(this.angle) * (6 + Math.random() * 4) * speed;
-        this.size = 2.5 + Math.random() * 1.5;
-        // Two halves of the splitting Tiamat comet tail: blue/cyan and pink/red
+        this.size = 2 + Math.random() * 1.5;
         this.color = Math.random() > 0.5 ? "#4da6ff" : "#ff6699";
         this.active = true;
         this.trail = [];
@@ -91,39 +143,31 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       update() {
         if (!this.active) return;
 
-        // Add to trail
         this.trail.push(new TrailParticle(this.x, this.y, this.color, this.size * 0.8));
-        if (this.trail.length > 30) {
+        if (this.trail.length > 25) {
           this.trail.shift();
         }
 
-        // Move comet head
         this.x += this.speedX;
         this.y += this.speedY;
 
-        // Split simulation: occasionally branch off a tiny child comet
-        if (Math.random() < 0.01 && this.trail.length > 10) {
-          // Add extra colorful side particles
+        if (Math.random() < 0.008 && this.trail.length > 8) {
           const splitColor = this.color === "#4da6ff" ? "#ff6699" : "#4da6ff";
-          this.trail.push(new TrailParticle(this.x + (Math.random() - 0.5) * 12, this.y + (Math.random() - 0.5) * 12, splitColor, this.size * 0.6));
+          this.trail.push(new TrailParticle(this.x + (Math.random() - 0.5) * 10, this.y + (Math.random() - 0.5) * 10, splitColor, this.size * 0.5));
         }
 
-        // Deactivate when out of bounds
         if (this.y > height + 100 || this.x < -100) {
           this.active = false;
         }
 
-        // Update trail particles
         this.trail.forEach((p) => p.update());
         this.trail = this.trail.filter((p) => p.alpha > 0);
       }
 
       draw() {
-        // Draw trailing particles
         this.trail.forEach((p) => p.draw());
 
         if (this.active) {
-          // Draw comet glowing head
           const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
           grad.addColorStop(0, "#ffffff");
           grad.addColorStop(0.3, this.color);
@@ -137,55 +181,59 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
       }
     }
 
-    // Initialize Stars
-    const starCount = Math.min(60, Math.floor((width * height) / 8000));
+    // Initialize Stars – fewer in burst mode since it's an overlay
+    const starCount = burstMode ? 0 : Math.min(40, Math.floor((width * height) / 10000));
     const stars = Array.from({ length: starCount }, () => new Star());
 
-    // Initialize Comet list and scheduler
     let comets = [];
-    const spawnComet = () => {
-      if (comets.length < 3) {
-        comets.push(new Comet());
+    let sparkles = [];
+
+    let cometInterval = null;
+
+    if (burstMode) {
+      // Burst mode: spawn 3–4 comets immediately, then stop
+      const burstCount = 3 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < burstCount; i++) {
+        setTimeout(() => comets.push(new Comet()), i * 280);
       }
-    };
+      // Spawn sparkles in waves
+      for (let wave = 0; wave < 4; wave++) {
+        setTimeout(() => {
+          for (let i = 0; i < 12; i++) sparkles.push(new Sparkle());
+        }, wave * 200);
+      }
+    } else {
+      // Normal mode: periodic comet spawning
+      const spawnComet = () => {
+        if (comets.length < 2) comets.push(new Comet());
+      };
+      spawnComet();
+      cometInterval = setInterval(spawnComet, cometFrequency);
+    }
 
-    // Spawn first comet and setup timer
-    spawnComet();
-    const cometInterval = setInterval(spawnComet, cometFrequency);
-
-    // Resize Handler
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = canvas.offsetWidth;
       height = canvas.height = canvas.offsetHeight;
-      // Re-populate stars based on new size
-      const newStarCount = Math.min(60, Math.floor((width * height) / 8000));
-      stars.length = 0;
-      for (let i = 0; i < newStarCount; i++) {
-        stars.push(new Star());
+      if (!burstMode) {
+        const newCount = Math.min(40, Math.floor((width * height) / 10000));
+        stars.length = 0;
+        for (let i = 0; i < newCount; i++) stars.push(new Star());
       }
     };
     window.addEventListener("resize", handleResize);
 
-    // Main Draw Loop
     const loop = () => {
-      // Clear with transparent layer to allow background gradients to show through
       ctx.clearRect(0, 0, width, height);
 
-      // Draw and update stars
-      stars.forEach((star) => {
-        star.update();
-        star.draw();
-      });
-
-      // Draw and update comets
-      comets.forEach((comet) => {
-        comet.update();
-        comet.draw();
-      });
-
-      // Filter out completed comets
+      stars.forEach((s) => { s.update(); s.draw(); });
+      comets.forEach((c) => { c.update(); c.draw(); });
       comets = comets.filter((c) => c.active || c.trail.length > 0);
+
+      if (burstMode) {
+        sparkles.forEach((sp) => { sp.update(); sp.draw(); });
+        sparkles = sparkles.filter((sp) => !sp.dead);
+      }
 
       animationFrameId = requestAnimationFrame(loop);
     };
@@ -194,10 +242,12 @@ export default function CometBackground({ active = true, speed = 1, cometFrequen
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      clearInterval(cometInterval);
+      if (cometInterval) clearInterval(cometInterval);
       window.removeEventListener("resize", handleResize);
     };
-  }, [active, speed, cometFrequency]);
+  }, [active, burstMode, speed, cometFrequency]);
+
+  if (!active) return null;
 
   return (
     <canvas
