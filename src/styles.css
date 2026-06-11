@@ -186,7 +186,7 @@ button { border: 0; cursor: pointer; }
 }
 
 /* Native-style launch screen */
-.splash-screen { position: absolute; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 42px; background: var(--theme); opacity: 1; visibility: visible; transition: opacity .34s ease, visibility .34s ease; }
+.splash-screen { position: absolute; inset: 0; z-index: 220; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 42px; background: var(--theme); opacity: 1; visibility: visible; transition: opacity .34s ease, visibility .34s ease; }
 .splash-screen.leaving { opacity: 0; visibility: hidden; }
 .splash-screen img { width: min(44%, 180px); height: auto; animation: splash-arrive .55s cubic-bezier(.2,.8,.2,1) both; filter: drop-shadow(0 5px 9px rgba(0,0,0,.08)); }
 .splash-screen .splash-loader { width: 28px; height: 28px; object-fit: contain; animation: splash-spin .8s linear infinite; filter: none; }
