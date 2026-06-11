@@ -54,6 +54,8 @@ const TRANSLATIONS = {
     calendar: "Calendar",
     diary: "Diary",
     no_title: "No Title",
+    no_bookmarks: "No bookmarked entries",
+    show_all_entries: "Show All Entries",
     diary_title_hint: "Diary title",
     diary_content_hint: "Write your diary here",
     no_location: "No Location",
@@ -167,6 +169,8 @@ const TRANSLATIONS = {
     calendar: "カレンダー",
     diary: "日記",
     no_title: "タイトルなし",
+    no_bookmarks: "ブックマークした日記はありません",
+    show_all_entries: "すべての日記を表示",
     diary_title_hint: "タイトル",
     diary_content_hint: "タップして本文を記入",
     no_location: "位置情報が取得できません",
@@ -1399,7 +1403,19 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
         />
       ) : (
         <div className="diary-content">
-          {tab === "entries" && <EntryList entries={visibleEntries} openEntry={openEntry} toggleBookmark={toggleBookmark} t={t} currentLang={currentLang} />}
+          {tab === "entries" && (
+            visibleEntries.length === 0 && bookmarkedOnly ? (
+              <div className="bookmark-empty" role="status">
+                <svg className="bookmark-empty-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 3.5A1.5 1.5 0 0 1 7.5 2h9A1.5 1.5 0 0 1 18 3.5V22l-6-4.15L6 22V3.5Z" />
+                </svg>
+                <p>{t("no_bookmarks")}</p>
+                <button onClick={() => setBookmarkedOnly(false)}>{t("show_all_entries")}</button>
+              </div>
+            ) : (
+              <EntryList entries={visibleEntries} openEntry={openEntry} toggleBookmark={toggleBookmark} t={t} currentLang={currentLang} />
+            )
+          )}
           {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} toggleBookmark={toggleBookmark} t={t} currentLang={currentLang} />}
           {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} triggerOverlay={triggerOverlay} onSaved={onSaved} />}
         </div>
