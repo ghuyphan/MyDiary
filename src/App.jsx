@@ -1,6 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import CometBackground from "./CometBackground";
 import HandwrittenOverlay from "./HandwrittenOverlay";
+import {
+  loadDiaryState,
+  loadDiaryDraft,
+  migrateLegacyState,
+  requestPersistentStorage,
+  replaceDiaryState,
+  saveDiaryDraft,
+  saveDiaryState,
+  deleteDiaryDraft,
+  validateDiaryState,
+} from "./storage/diaryStore";
+import { createPinSecurity, verifyPin } from "./security/pin";
+import { createDiaryBackup, parseDiaryBackup } from "./backup/diaryBackup";
+import { processDiaryImage } from "./storage/imageProcessing";
 
 const A = import.meta.env.BASE_URL + "assets/icons/";
 const HISTORY_KEY = "mydiary-screen";
@@ -329,8 +343,8 @@ const assetNames = [
   "theme_bg_mitsuha.png", "theme_bg_taki.png", "diary_calendar_arr_shadow.png",
 ];
 
-function Icon({ name, alt = "", className = "", style = {} }) {
-  return <img className={`icon ${className}`} src={`${A}${name}`} alt={alt} style={style} />;
+function Icon({ name, alt = "", className = "", style = {}, ...props }) {
+  return <img className={`icon ${className}`} src={`${A}${name}`} alt={alt} style={style} {...props} />;
 }
 
 function FlatList({ data, renderItem, keyExtractor, className = "", ...props }) {
@@ -516,12 +530,35 @@ function useDiaryData() {
       return isJa ? initialData : initialDataEn;
     }
   });
+  const [hydrated, setHydrated] = useState(false);
+
   useEffect(() => {
+    let cancelled = false;
+    const hydrate = async () => {
+      try {
+        const saved = await loadDiaryState() || await migrateLegacyState();
+        if (!cancelled && saved) setData(saved);
+      } catch (error) {
+        console.error("Failed to open IndexedDB diary storage", error);
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    };
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return undefined;
     const handler = setTimeout(() => {
-      localStorage.setItem("mydiary-faithful", JSON.stringify(data));
+      saveDiaryState(data).catch((error) => {
+        console.error("Failed to save diary", error);
+      });
     }, 500);
     return () => clearTimeout(handler);
-  }, [data]);
+  }, [data, hydrated]);
   return [data, setData];
 }
 
@@ -649,8 +686,41 @@ function App() {
   const [appUnlocked, setAppUnlocked] = useState(false);
   const [securityMode, setSecurityMode] = useState(null); // 'create' | 'remove' | null
 
+  useEffect(() => {
+    if (!data.locked || !appUnlocked) return undefined;
+    const idleMinutes = data.security?.idleMinutes || 5;
+    let idleTimer;
+    let hiddenAt = null;
+    const resetIdleTimer = () => {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => setAppUnlocked(false), idleMinutes * 60 * 1000);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else {
+        if (hiddenAt && Date.now() - hiddenAt > 30000) setAppUnlocked(false);
+        hiddenAt = null;
+        resetIdleTimer();
+      }
+    };
+    const events = ["pointerdown", "keydown", "touchstart"];
+    events.forEach((eventName) => window.addEventListener(eventName, resetIdleTimer, { passive: true }));
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    resetIdleTimer();
+    return () => {
+      window.clearTimeout(idleTimer);
+      events.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [appUnlocked, data.locked, data.security?.idleMinutes]);
+
   // iOS-style dialog helper state and Promise functions
   const [iosAlert, setIosAlert] = useState(null);
+
+  useEffect(() => {
+    requestPersistentStorage().catch(() => false);
+  }, []);
 
   const showAlert = useCallback((message, title = "") => {
     return new Promise((resolve) => {
@@ -761,8 +831,13 @@ function App() {
             t={t}
             mode="unlock"
             expectedPin={data.password}
+            expectedSecurity={data.security}
             onComplete={() => {
               setAppUnlocked(true);
+            }}
+            onLegacyUnlock={async (pin) => {
+              const security = await createPinSecurity(pin);
+              setData((current) => ({ ...current, security, password: "" }));
             }}
           />
         ) : (
@@ -860,6 +935,7 @@ function App() {
                         }}
                         t={t}
                         showAlert={showAlert}
+                        showPrompt={showPrompt}
                         triggerOverlay={triggerOverlay}
                       />
                     );
@@ -918,9 +994,11 @@ function App() {
                 t={t}
                 mode="create"
                 onComplete={(newPin) => {
-                  setData({ ...data, locked: true, password: newPin });
-                  setSecurityMode(null);
-                  setAppUnlocked(true);
+                  createPinSecurity(newPin).then((security) => {
+                    setData({ ...data, locked: true, security, password: "" });
+                    setSecurityMode(null);
+                    setAppUnlocked(true);
+                  });
                 }}
                 onCancel={() => setSecurityMode(null)}
               />
@@ -931,8 +1009,9 @@ function App() {
                 t={t}
                 mode="remove"
                 expectedPin={data.password}
+                expectedSecurity={data.security}
                 onComplete={() => {
-                  setData({ ...data, locked: false, password: "" });
+                  setData({ ...data, locked: false, password: "", security: undefined });
                   setSecurityMode(null);
                 }}
                 onCancel={() => setSecurityMode(null)}
@@ -1290,6 +1369,16 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
 
   const [photoOverviewOpen, setPhotoOverviewOpen] = useState(false);
   const [selectedOverviewPhoto, setSelectedOverviewPhoto] = useState(null);
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
+  const visibleEntries = bookmarkedOnly ? data.entries.filter((entry) => entry.bookmarked) : data.entries;
+  const toggleBookmark = useCallback((entryId) => {
+    setData((current) => ({
+      ...current,
+      entries: current.entries.map((entry) => entry.id === entryId
+        ? { ...entry, bookmarked: !entry.bookmarked }
+        : entry),
+    }));
+  }, [setData]);
 
   return (
     <main className="screen diary-screen">
@@ -1310,8 +1399,8 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
         />
       ) : (
         <div className="diary-content">
-          {tab === "entries" && <EntryList entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
-          {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} t={t} currentLang={currentLang} />}
+          {tab === "entries" && <EntryList entries={visibleEntries} openEntry={openEntry} toggleBookmark={toggleBookmark} t={t} currentLang={currentLang} />}
+          {tab === "calendar" && <Calendar entries={data.entries} openEntry={openEntry} toggleBookmark={toggleBookmark} t={t} currentLang={currentLang} />}
           {tab === "editor" && <DiaryEditor entry={selected} data={data} setData={setData} close={() => setTab("entries")} t={t} currentLang={currentLang} showConfirm={showConfirm} showPrompt={showPrompt} showAlert={showAlert} triggerOverlay={triggerOverlay} onSaved={onSaved} />}
         </div>
       )}
@@ -1321,7 +1410,19 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
           <button onClick={goHome}><Icon name="ic_menu_white_24dp.png" /></button>
           <button onClick={() => { setSelected(null); setTab("editor"); }}><Icon name="ic_mode_edit_white_24dp.png" /></button>
           <button onClick={() => setPhotoOverviewOpen(true)}><Icon name={tab === "calendar" ? "ic_photo_camera_white_24dp.png" : "ic_photo_white_24dp.png"} /></button>
-          {tab === "entries" && <span className="entry-count">{t("entries_count", data.entries.length)}</span>}
+          {tab === "entries" && (
+            <button
+              className={`bookmark-filter ${bookmarkedOnly ? "active" : ""}`}
+              onClick={() => setBookmarkedOnly((value) => !value)}
+              aria-label="Show bookmarked entries"
+              aria-pressed={bookmarkedOnly}
+            >
+              <svg className="bookmark-filter-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 3.5A1.5 1.5 0 0 1 7.5 2h9A1.5 1.5 0 0 1 18 3.5V22l-6-4.15L6 22V3.5Z" />
+              </svg>
+            </button>
+          )}
+          {tab === "entries" && <span className="entry-count">{t("entries_count", visibleEntries.length)}</span>}
         </BottomBar>
       )}
 
@@ -1338,34 +1439,43 @@ function Diary({ data, setData, title, tab, setTab, selected, setSelected, goHom
   );
 }
 
-const EntryCard = React.memo(function EntryCard({ entry, openEntry, t, currentLang, index }) {
+const EntryCard = React.memo(function EntryCard({ entry, openEntry, toggleBookmark, t, currentLang, index }) {
   const rawDate = new Date(`${entry.date}T00:00:00`);
   const weekdayText = entry.weekday || rawDate.toLocaleDateString(currentLang, { weekday: "short" });
   return (
-    <button className="entry-card anim-stagger-item" onClick={() => openEntry(entry)} style={{ "--stagger-i": index }}>
-      <div className="entry-card-date">
-        <b>{entry.day}</b>
-        <span>{weekdayText}.</span>
-      </div>
-      <div className="entry-copy">
-        <strong className="entry-card-title">{getTranslatedEntryField(entry.title, t) || t("no_title")}</strong>
-        <span className="entry-card-summary">{getTranslatedEntryField(entry.summary ?? entry.content ?? entry.location ?? "", t)}</span>
-      </div>
-      <div className="entry-card-icons">
-        <div className="entry-card-top-icons">
-          <Icon name={`ic_weather_${entry.weather}.png`} className="entry-card-icon" />
-          <Icon name={`ic_mood_${entry.mood}.png`} className="entry-card-icon" />
-          <Icon name="ic_bookmark_border.png" className="entry-card-icon bookmark-icon" />
+    <div className="entry-card anim-stagger-item" style={{ "--stagger-i": index }}>
+      <button className="entry-card-main" onClick={() => openEntry(entry)}>
+        <div className="entry-card-date">
+          <b>{entry.day}</b>
+          <span>{weekdayText}.</span>
         </div>
-        {entry.photos && entry.photos.length > 0 && (
-          <Icon name="ic_attach.png" className="entry-card-attach-icon" />
-        )}
-      </div>
-    </button>
+        <div className="entry-copy">
+          <strong className="entry-card-title">{getTranslatedEntryField(entry.title, t) || t("no_title")}</strong>
+          <span className="entry-card-summary">{getTranslatedEntryField(entry.summary ?? entry.content ?? entry.location ?? "", t)}</span>
+        </div>
+        <div className="entry-card-icons">
+          <div className="entry-card-top-icons">
+            <Icon name={`ic_weather_${entry.weather}.png`} className="entry-card-icon" />
+            <Icon name={`ic_mood_${entry.mood}.png`} className="entry-card-icon" />
+          </div>
+          {entry.photos && entry.photos.length > 0 && (
+            <Icon name="ic_attach.png" className="entry-card-attach-icon" />
+          )}
+        </div>
+      </button>
+      <button
+        className={`bookmark-button ${entry.bookmarked ? "active" : ""}`}
+        aria-label="Bookmark entry"
+        aria-pressed={Boolean(entry.bookmarked)}
+        onClick={() => toggleBookmark?.(entry.id)}
+      >
+        <Icon name="ic_bookmark_border.png" className="entry-card-icon bookmark-icon" />
+      </button>
+    </div>
   );
 });
 
-function EntryList({ entries, openEntry, t, currentLang }) {
+function EntryList({ entries, openEntry, toggleBookmark, t, currentLang }) {
   const grouped = entries.reduce((result, entry) => {
     const month = String(new Date(`${entry.date}T00:00:00`).getMonth() + 1);
     if (!result[month]) result[month] = [];
@@ -1387,6 +1497,7 @@ function EntryList({ entries, openEntry, t, currentLang }) {
                 <EntryCard
                   entry={item}
                   openEntry={openEntry}
+                  toggleBookmark={toggleBookmark}
                   t={t}
                   currentLang={currentLang}
                   index={i}
@@ -1400,7 +1511,7 @@ function EntryList({ entries, openEntry, t, currentLang }) {
   );
 }
 
-function Calendar({ entries, openEntry, t, currentLang }) {
+function Calendar({ entries, openEntry, toggleBookmark, t, currentLang }) {
   const [viewDate, setViewDate] = useState(() => {
     if (entries.length > 0) {
       return new Date(`${entries[0].date}T00:00:00`);
@@ -1569,6 +1680,7 @@ function Calendar({ entries, openEntry, t, currentLang }) {
               <EntryCard
                 entry={item}
                 openEntry={openEntry}
+                toggleBookmark={toggleBookmark}
                 t={t}
                 currentLang={currentLang}
                 index={0}
@@ -1662,19 +1774,82 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
   const [activeTextarea, setActiveTextarea] = useState({ id: null, selectionStart: 0 });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const draftKey = entry ? `entry:${entry.id}` : "entry:new";
+  const draftRef = useRef(draft);
+  const itemsRef = useRef(items);
 
   useEffect(() => {
-    if (entry) {
-      setDraft({ ...entry, photos: entry.photos || [] });
-      setItems(entry.items || [{ id: "text_0", type: "text", value: entry.content || "" }]);
-      setActiveTextarea({ id: entry.items?.[0]?.id || "text_0", selectionStart: 0 });
-    } else {
-      const freshDraft = createDraft();
-      setDraft(freshDraft);
-      setItems([{ id: "text_0", type: "text", value: "" }]);
-      setActiveTextarea({ id: "text_0", selectionStart: 0 });
-    }
-  }, [entry]);
+    draftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const baseDraft = entry ? { ...entry, photos: entry.photos || [] } : createDraft();
+    const baseItems = entry?.items || [{ id: "text_0", type: "text", value: entry?.content || "" }];
+    setDraft(baseDraft);
+    setItems(baseItems);
+    setActiveTextarea({ id: baseItems[0]?.id || "text_0", selectionStart: 0 });
+    setDraftReady(false);
+
+    loadDiaryDraft(draftKey)
+      .then(async (savedDraft) => {
+        if (cancelled || !savedDraft) return;
+        const recover = await showConfirm(
+          currentLang === "ja"
+            ? "保存されていない下書きがあります。復元しますか？"
+            : "An unsaved draft was found. Restore it?",
+        );
+        if (!cancelled && recover) {
+          setDraft(savedDraft.draft);
+          setItems(savedDraft.items);
+          setActiveTextarea({ id: savedDraft.items[0]?.id || "text_0", selectionStart: 0 });
+        } else if (!recover) {
+          await deleteDiaryDraft(draftKey);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setDraftReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLang, draftKey, entry, showConfirm]);
+
+  useEffect(() => {
+    if (!draftReady) return undefined;
+    const hasContent = (draft.title || "").trim()
+      || items.some((item) => item.type === "photo" || (item.type === "text" && item.value.trim()));
+    const handler = window.setTimeout(() => {
+      const action = hasContent
+        ? saveDiaryDraft(draftKey, { draft, items })
+        : deleteDiaryDraft(draftKey);
+      action.catch((error) => console.error("Failed to save diary draft", error));
+    }, 700);
+    return () => window.clearTimeout(handler);
+  }, [draft, draftKey, draftReady, items]);
+
+  useEffect(() => {
+    if (!draftReady) return undefined;
+    const persistOnHide = () => {
+      if (document.visibilityState !== "hidden") return;
+      const currentDraft = draftRef.current;
+      const currentItems = itemsRef.current;
+      const hasContent = (currentDraft.title || "").trim()
+        || currentItems.some((item) => item.type === "photo" || (item.type === "text" && item.value.trim()));
+      if (hasContent) {
+        saveDiaryDraft(draftKey, { draft: currentDraft, items: currentItems }).catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", persistOnHide);
+    return () => document.removeEventListener("visibilitychange", persistOnHide);
+  }, [draftKey, draftReady]);
 
   const update = (key, value) => {
     if (key === "date") {
@@ -1719,6 +1894,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
         ? data.entries.map((item) => item.id === draft.id ? updatedEntry : item)
         : [updatedEntry, ...data.entries]
     });
+    await deleteDiaryDraft(draftKey);
 
     if (triggerOverlay) {
       triggerOverlay();
@@ -1732,12 +1908,14 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
   const remove = async () => {
     if (await showConfirm(t("delete_entry_confirm"))) {
       setData({ ...data, entries: data.entries.filter((item) => item.id !== draft.id) });
+      await deleteDiaryDraft(draftKey);
       close();
     }
   };
 
   const handleClear = async () => {
     if (await showConfirm(t("discard_draft_confirm"))) {
+      await deleteDiaryDraft(draftKey);
       setDraft(createDraft());
       setItems([{ id: "text_0", type: "text", value: "" }]);
     }
@@ -1790,13 +1968,12 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result;
-      
+
+    try {
+      const imageData = await processDiaryImage(file);
       setItems(prev => {
         const idx = prev.findIndex(item => item.id === activeTextarea.id);
         if (idx !== -1 && prev[idx].type === "text") {
@@ -1807,7 +1984,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
           const secondPart = textVal.slice(splitIdx);
           
           const newText1 = { ...textItem, value: firstPart };
-          const newPhoto = { id: `photo_${Date.now()}`, type: "photo", value: base64 };
+          const newPhoto = { id: `photo_${Date.now()}`, type: "photo", value: imageData };
           const newText2 = { id: `text_${Date.now()}`, type: "text", value: secondPart };
           
           const next = [...prev];
@@ -1816,14 +1993,16 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
         } else {
           return [
             ...prev,
-            { id: `photo_${Date.now()}`, type: "photo", value: base64 },
+            { id: `photo_${Date.now()}`, type: "photo", value: imageData },
             { id: `text_${Date.now()}`, type: "text", value: "" }
           ];
         }
       });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    } catch (error) {
+      await showAlert(error.message || "Unable to add this image.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleTextChange = (id, val) => {
@@ -2112,11 +2291,13 @@ function Contacts({ data, setData, title, goHome, t, showConfirm }) {
       />
       {adding && (
         <NativeDialog title={t("contact_dialog_title")} close={() => setAdding(false)}>
-          <input placeholder={t("name")} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
-          <input placeholder={t("phone")} value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-            <button onClick={() => setAdding(false)} style={{ color: '#888' }}>{t("cancel")}</button>
-            <button onClick={save} style={{ color: 'var(--theme-dark)', fontWeight: 'bold' }}>{t("ok")}</button>
+          <div className="ios-form-fields">
+            <input placeholder={t("name")} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} autoFocus />
+            <input placeholder={t("phone")} value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} inputMode="tel" />
+          </div>
+          <div className="ios-form-actions">
+            <button className="ios-form-cancel" onClick={() => setAdding(false)}>{t("cancel")}</button>
+            <button className="ios-form-ok" onClick={save}>{t("ok")}</button>
           </div>
         </NativeDialog>
       )}
@@ -2400,14 +2581,24 @@ function BottomBar({ children }) {
 }
 
 function QuickSettings({ data, setData, close, open, onAddTopic, onToggleLock, t }) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const performClose = (actionCallback) => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      actionCallback();
+    }, 280);
+  };
+
   return (
-    <div className="sheet-scrim" onMouseDown={close}>
-      <div className="quick-sheet" onMouseDown={(event) => event.stopPropagation()}>
-        <button onClick={onAddTopic}><Icon name="ic_add_white_36dp.png" /><span>{t("add_topic_btn")}</span></button>
-        <button onClick={() => open("settings")}><Icon name="ic_settings_white_36dp.png" /><span>{t("settings_btn")}</span></button>
-        <button onClick={onToggleLock}><Icon name={data.locked ? "ic_no_encryption_white_36dp.png" : "ic_enhanced_encryption_white_36dp.png"} /><span>{t("passcode_btn")}</span></button>
-        <button onClick={() => open("settings")}><Icon name="ic_backup_white_36dp.png" /><span>{t("backup_btn")}</span></button>
-        <button onClick={() => open("about")}><Icon name="ic_perm_device_information_white_36dp.png" /><span>{t("about_btn")}</span></button>
+    <div className={`sheet-scrim ${isClosing ? "closing" : ""}`} onMouseDown={() => performClose(close)}>
+      <div className={`quick-sheet ${isClosing ? "closing" : ""}`} onMouseDown={(event) => event.stopPropagation()}>
+        <button onClick={() => performClose(onAddTopic)}><Icon name="ic_add_white_36dp.png" /><span>{t("add_topic_btn")}</span></button>
+        <button onClick={() => performClose(() => open("settings"))}><Icon name="ic_settings_white_36dp.png" /><span>{t("settings_btn")}</span></button>
+        <button onClick={() => performClose(onToggleLock)}><Icon name={data.locked ? "ic_no_encryption_white_36dp.png" : "ic_enhanced_encryption_white_36dp.png"} /><span>{t("passcode_btn")}</span></button>
+        <button onClick={() => performClose(() => open("settings"))}><Icon name="ic_backup_white_36dp.png" /><span>{t("backup_btn")}</span></button>
+        <button onClick={() => performClose(() => open("about"))}><Icon name="ic_perm_device_information_white_36dp.png" /><span>{t("about_btn")}</span></button>
       </div>
     </div>
   );
@@ -2415,43 +2606,44 @@ function QuickSettings({ data, setData, close, open, onAddTopic, onToggleLock, t
 
 function AddTopicDialog({ close, save, t }) {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("diary");
+  const [choosingType, setChoosingType] = useState(false);
   
-  const handleSave = () => {
+  const continueToType = () => {
     if (!title.trim()) return;
-    save(title.trim(), type);
+    setChoosingType(true);
   };
 
+  if (choosingType) {
+    return (
+      <div className="ios-action-sheet-scrim" onMouseDown={close}>
+        <div className="ios-action-sheet" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={t("add_topic")}>
+          <div className="ios-action-sheet-group">
+            <div className="ios-action-sheet-title">{t("add_topic")}</div>
+            <button onClick={() => save(title.trim(), "diary")}>{t("diary")}</button>
+            <button onClick={() => save(title.trim(), "memo")}>{t("memo")}</button>
+            <button onClick={() => save(title.trim(), "contacts")}>{t("contacts")}</button>
+          </div>
+          <button className="ios-action-sheet-cancel" onClick={() => setChoosingType(false)}>{t("cancel")}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="dialog-scrim" onMouseDown={close}>
-      <div className="native-dialog" onMouseDown={(event) => event.stopPropagation()}>
-        <h3>{t("add_topic")}</h3>
+    <NativeDialog title={t("add_topic")} close={close}>
+      <div className="ios-form-fields">
         <input
           placeholder={t("topic_name")}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           autoFocus
         />
-        <div style={{ display: 'flex', gap: '15px', padding: '10px 0', fontSize: '14px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-            <input type="radio" checked={type === "diary"} onChange={() => setType("diary")} />
-            {t("diary")}
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-            <input type="radio" checked={type === "memo"} onChange={() => setType("memo")} />
-            {t("memo")}
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-            <input type="radio" checked={type === "contacts"} onChange={() => setType("contacts")} />
-            {t("contacts")}
-          </label>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button onClick={close}>{t("cancel")}</button>
-          <button onClick={handleSave} style={{ color: 'var(--theme-dark)', fontWeight: 'bold' }}>{t("ok")}</button>
-        </div>
       </div>
-    </div>
+      <div className="ios-form-actions">
+        <button className="ios-form-cancel" onClick={close}>{t("cancel")}</button>
+        <button className="ios-form-ok" onClick={continueToType}>{t("ok")}</button>
+      </div>
+    </NativeDialog>
   );
 }
 
@@ -2504,13 +2696,25 @@ function PhotoViewerModal({ item, close, viewEntry, t, currentLang }) {
   );
 }
 
-function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert, triggerOverlay }) {
+function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert, showPrompt, triggerOverlay }) {
   const fileRef = useRef(null);
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const exportData = async () => {
+    const pin = await showPrompt(
+      currentLanguage(data) === "ja"
+        ? "バックアップ用の4桁PINを入力してください。空欄の場合は暗号化されません。"
+        : "Enter a 4-digit backup PIN. Leave blank for an unencrypted backup.",
+      "",
+    );
+    if (pin === null) return;
+    if (pin && !/^\d{4}$/.test(pin)) {
+      await showAlert(currentLanguage(data) === "ja" ? "PINは4桁で入力してください。" : "The backup PIN must contain 4 digits.");
+      return;
+    }
+    const backup = await createDiaryBackup(data, pin);
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "mydiary-backup.json";
+    link.download = pin ? "mydiary-backup-encrypted.json" : "mydiary-backup.json";
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -2520,7 +2724,13 @@ function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        setData(JSON.parse(reader.result));
+        const imported = await parseDiaryBackup(reader.result, () => showPrompt(
+          currentLanguage(data) === "ja" ? "バックアップのPINを入力してください。" : "Enter the backup PIN.",
+          "",
+        ));
+        const validated = validateDiaryState(imported);
+        const restored = await replaceDiaryState(validated);
+        setData(restored);
       } catch {
         await showAlert(t("import_failed"));
       }
@@ -2566,6 +2776,10 @@ function Settings({ data, setData, goHome, openAbout, onToggleLock, t, showAlert
   );
 }
 
+function currentLanguage(data) {
+  return data.language === "ja" || (data.language !== "en" && navigator.language?.startsWith("ja")) ? "ja" : "en";
+}
+
 function About({ goHome, t }) {
   return (
     <main className="screen about-screen">
@@ -2584,7 +2798,27 @@ function About({ goHome, t }) {
 }
 
 function NativeDialog({ title, close, children }) {
-  return <div className="dialog-scrim" onMouseDown={close}><div className="native-dialog" onMouseDown={(event) => event.stopPropagation()}><h3>{title}</h3>{children}</div></div>;
+  return (
+    <div
+      className="dialog-scrim ios-form-scrim"
+      onMouseDown={close}
+      onKeyDown={(event) => event.key === "Escape" && close()}
+      role="presentation"
+    >
+      <section
+        className="native-dialog ios-form-dialog"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="ios-form-content">
+          <h3>{title}</h3>
+          {children}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 const KEYPAD_LETTERS = {
@@ -2600,7 +2834,7 @@ const KEYPAD_LETTERS = {
   0: ""
 };
 
-function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
+function LockScreen({ mode, expectedPin, expectedSecurity, onComplete, onLegacyUnlock, onCancel, t }) {
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState(() => {
     if (mode === "unlock") return t("enter_passcode");
@@ -2625,9 +2859,13 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
     setPin(nextPin);
 
     if (nextPin.length === 4) {
-      setTimeout(() => {
+      setTimeout(async () => {
         if (mode === "unlock") {
-          if (nextPin === expectedPin) {
+          const valid = expectedSecurity
+            ? await verifyPin(nextPin, expectedSecurity)
+            : nextPin === expectedPin;
+          if (valid) {
+            if (!expectedSecurity && expectedPin && onLegacyUnlock) await onLegacyUnlock(nextPin);
             onComplete(nextPin);
           } else {
             setErrorMsg(t("wrong_passcode"));
@@ -2635,7 +2873,10 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
             triggerShake();
           }
         } else if (mode === "remove") {
-          if (nextPin === expectedPin) {
+          const valid = expectedSecurity
+            ? await verifyPin(nextPin, expectedSecurity)
+            : nextPin === expectedPin;
+          if (valid) {
             onComplete();
           } else {
             setErrorMsg(t("wrong_passcode"));
@@ -2659,7 +2900,7 @@ function LockScreen({ mode, expectedPin, onComplete, onCancel, t }) {
         }
       }, 300);
     }
-  }, [pin, expectedPin, mode, onComplete, tempPin, t]);
+  }, [pin, expectedPin, expectedSecurity, mode, onComplete, onLegacyUnlock, tempPin, t]);
 
   const handleBackspace = useCallback(() => {
     if (pin.length > 0) {

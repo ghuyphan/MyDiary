@@ -136,14 +136,24 @@ button { border: 0; cursor: pointer; }
 
 /* Quick Settings sheet slide-up */
 .sheet-scrim { animation: scrim-fade-in .25s ease both; }
+.sheet-scrim.closing { animation: scrim-fade-out .25s ease both; }
 .quick-sheet { animation: sheet-slide-up .3s cubic-bezier(.2, .8, .2, 1) both; }
+.quick-sheet.closing { animation: sheet-slide-down .3s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes scrim-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes scrim-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
 @keyframes sheet-slide-up {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+@keyframes sheet-slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }
 
 /* Dialog pop-in */
@@ -274,18 +284,28 @@ button { border: 0; cursor: pointer; }
 .entry-list { flex: 1; min-height: 0; padding: 0 9px 8px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.55) transparent; }
 .entry-month { height: 47px; display: grid; place-items: center; color: #fff; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 42px; font-weight: 200; line-height: 1; text-shadow: 0 2px 3px rgba(35,67,80,.72); }
 .entry-card {
+  position: relative;
   width: 100%;
   height: 84px;
   margin-bottom: 8px;
-  padding: 6px 12px;
-  display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) 56px;
-  gap: 10px;
+  padding: 0;
+  overflow: hidden;
   color: #333;
   background: #ffffff;
   border: 1.5px solid var(--theme-light);
   border-radius: 6px;
   box-shadow: 0 3px 8px var(--theme-shadow);
+}
+
+.entry-card-main {
+  width: 100%;
+  height: 100%;
+  padding: 6px 12px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 56px;
+  gap: 10px;
+  color: #333;
+  background: transparent;
   text-align: left;
 }
 
@@ -369,9 +389,33 @@ button { border: 0; cursor: pointer; }
   filter: invert(77%) sepia(22%) saturate(840%) hue-rotate(134deg) brightness(92%) contrast(88%);
 }
 
+.bookmark-button {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 7px;
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
 .bookmark-icon {
   width: 12px;
   height: 12px;
+  opacity: .45;
+}
+
+.bookmark-button.active .bookmark-icon {
+  opacity: 1;
+  filter: sepia(1) saturate(5) hue-rotate(345deg);
+}
+
+.bookmark-button:focus-visible {
+  outline: 2px solid var(--theme);
+  outline-offset: -2px;
 }
 
 .entry-card-attach-icon {
@@ -413,6 +457,26 @@ button { border: 0; cursor: pointer; }
   width: 22px;
   height: 22px;
   filter: none;
+}
+
+.bottom-bar .bookmark-filter {
+  min-width: 28px;
+  margin-right: 10px;
+}
+
+.bottom-bar .bookmark-filter-icon {
+  width: 19px;
+  height: 22px;
+  display: block;
+  fill: #fff;
+  opacity: .72;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.12));
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+.bottom-bar .bookmark-filter.active .bookmark-filter-icon {
+  opacity: 1;
+  transform: scale(1.06);
 }
 
 .entry-count {
@@ -622,8 +686,93 @@ button { border: 0; cursor: pointer; }
 .about-content { padding: 25px 18px 50px; text-align: center; flex: 1; min-height: 0; overflow-y: auto; }.about-logo { width: 100px; border-radius: 15px; }.about-content a { color: var(--theme-dark); }.about-content h3 { margin-top: 28px; }
 .screen-gallery { display: flex; gap: 8px; overflow-x: auto; }.screen-gallery img { height: 320px; }.asset-gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }.asset-gallery img { width: 100%; aspect-ratio: 1; padding: 5px; object-fit: contain; border: 1px solid #ddd; }
 .sheet-scrim, .dialog-scrim { position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: rgba(0,0,0,.35); }
-.quick-sheet { width: 100%; min-height: 110px; padding: 15px 18px; display: flex; justify-content: space-around; gap: 5px; background: var(--theme); box-shadow: 0 -3px 8px rgba(0,0,0,.25); }.quick-sheet button { width: 70px; display: grid; justify-items: center; gap: 5px; color: #fff; background: transparent; font-size: 10px; }.quick-sheet .icon { width: 38px; height: 38px; }
-.dialog-scrim { align-items: center; justify-content: center; }.native-dialog { width: calc(100% - 50px); padding: 20px; display: grid; gap: 10px; background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.35); }.native-dialog h3 { margin: 0 0 8px; font-weight: 400; }.native-dialog input { height: 42px; padding: 8px; border: 0; border-bottom: 1px solid var(--theme); outline: 0; }.native-dialog button { justify-self: end; padding: 8px 18px; color: var(--theme-dark); background: transparent; }
+.quick-sheet { width: 100%; min-height: 110px; padding: 15px 18px; display: flex; justify-content: space-around; gap: 5px; background: var(--theme); }.quick-sheet button { width: 70px; display: grid; justify-items: center; gap: 5px; color: #fff; background: transparent; font-size: 10px; }.quick-sheet .icon { width: 38px; height: 38px; }
+.dialog-scrim { align-items: center; justify-content: center; }
+.ios-form-scrim { background: rgba(0,0,0,.42); }
+.native-dialog { width: min(270px, calc(100% - 40px)); display: flex; flex-direction: column; overflow: hidden; color: #000; background: rgba(239,239,239,.96); border: .5px solid rgba(255,255,255,.72); border-radius: 8px; box-shadow: 0 8px 26px rgba(0,0,0,.24); backdrop-filter: blur(18px) saturate(120%); -webkit-backdrop-filter: blur(18px) saturate(120%); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.ios-form-content { padding: 18px 12px 0; }
+.native-dialog h3 { margin: 0 0 14px; text-align: center; font-size: 17px; line-height: 21px; font-weight: 500; letter-spacing: -.15px; }
+.ios-form-fields { overflow: hidden; border: .5px solid rgba(0,0,0,.25); border-radius: 3px; background: #fff; box-shadow: inset 0 1px 1px rgba(0,0,0,.04); }
+.native-dialog .ios-form-fields input { display: block; width: 100%; height: 31px; padding: 5px 7px; border: 0; border-radius: 0; outline: 0; background: #fff; color: #000; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 400; }
+.native-dialog .ios-form-fields input + input { border-top: .5px solid rgba(0,0,0,.18); }
+.native-dialog input::placeholder { color: #8e8e93; opacity: 1; }
+.ios-form-actions { display: flex; height: 44px; margin: 14px -12px 0; border-top: .5px solid rgba(0,0,0,.2); }
+.native-dialog .ios-form-actions button { flex: 1; height: 44px; margin: 0; padding: 0; display: grid; place-items: center; border: 0; background: transparent; color: #007aff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 300; letter-spacing: -.2px; }
+.native-dialog .ios-form-actions button + button { border-left: .5px solid rgba(0,0,0,.2); }
+.native-dialog .ios-form-actions .ios-form-ok { font-weight: 500; }
+.native-dialog .ios-form-actions button:active { background: rgba(0,0,0,.08); }
+
+.ios-action-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 8px 8px;
+  background: rgba(0,0,0,.42);
+  animation: ios-scrim-fade-in .2s ease both;
+}
+
+.ios-action-sheet {
+  width: 100%;
+  max-width: 464px;
+  display: grid;
+  gap: 8px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  animation: ios-action-sheet-up .25s cubic-bezier(.2,.75,.25,1) both;
+}
+
+.ios-action-sheet-group,
+.ios-action-sheet-cancel {
+  overflow: hidden;
+  border: .5px solid rgba(255,255,255,.72);
+  border-radius: 8px;
+  background: rgba(239,239,239,.96);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+.ios-action-sheet-title {
+  min-height: 38px;
+  padding: 11px 12px 8px;
+  display: grid;
+  place-items: center;
+  color: #777;
+  font-size: 12px;
+  line-height: 16px;
+  border-bottom: .5px solid rgba(0,0,0,.18);
+}
+
+.ios-action-sheet-group button,
+.ios-action-sheet-cancel {
+  width: 100%;
+  height: 48px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #007aff;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.ios-action-sheet-group button + button {
+  border-top: .5px solid rgba(0,0,0,.18);
+}
+
+.ios-action-sheet-cancel {
+  font-weight: 500;
+}
+
+.ios-action-sheet button:active {
+  background: rgba(0,0,0,.08);
+}
+
+@keyframes ios-action-sheet-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
  
 @media (min-width: 760px) {
   .android-app { height: calc(100vh - 56px); min-height: 640px; margin: 28px 0; border-radius: 3px; }
@@ -1066,17 +1215,18 @@ button,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.42);
   animation: ios-scrim-fade-in 0.25s ease both;
 }
 
 .ios-alert-dialog {
   width: 270px;
-  background: rgba(248, 248, 248, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 13px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  background: rgba(239, 239, 239, 0.96);
+  border: 0.5px solid rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  border-radius: 8px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.24);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1085,7 +1235,7 @@ button,
 }
 
 .ios-alert-content {
-  padding: 20px 16px;
+  padding: 18px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1093,16 +1243,17 @@ button,
 
 .ios-alert-title {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
   color: #030303;
-  line-height: 22px;
+  line-height: 21px;
+  letter-spacing: -0.15px;
 }
 
 .ios-alert-message {
   margin: 4px 0 0 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 13px;
   font-weight: 400;
   color: #030303;
@@ -1111,13 +1262,14 @@ button,
 
 .ios-alert-input {
   width: 100%;
+  height: 31px;
   margin-top: 12px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   background: #ffffff;
-  border: 0.5px solid rgba(0, 0, 0, 0.2);
-  border-radius: 5px;
-  font-family: inherit;
-  font-size: 13px;
+  border: 0.5px solid rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
   color: #000;
   outline: none;
   box-sizing: border-box;
@@ -1125,7 +1277,7 @@ button,
 
 .ios-alert-buttons {
   display: flex;
-  border-top: 0.5px solid rgba(0, 0, 0, 0.15);
+  border-top: 0.5px solid rgba(0, 0, 0, 0.2);
   height: 44px;
 }
 
@@ -1135,10 +1287,10 @@ button,
   background: transparent;
   border: none;
   outline: none;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 17px;
-  font-weight: 400;
-  color: #007af5;
+  font-weight: 300;
+  color: #007aff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1155,11 +1307,11 @@ button,
 }
 
 .ios-alert-btn-cancel {
-  border-right: 0.5px solid rgba(0, 0, 0, 0.15);
+  border-right: 0.5px solid rgba(0, 0, 0, 0.2);
 }
 
 .ios-alert-btn-ok {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .ios-alert-btn-ok.destructive {
@@ -1172,7 +1324,7 @@ button,
 }
 
 @keyframes ios-alert-pop {
-  from { opacity: 0; transform: scale(1.18); }
+  from { opacity: 0; transform: scale(1.12); }
   to { opacity: 1; transform: scale(1); }
 }
 
