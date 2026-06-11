@@ -25,8 +25,8 @@ const THEMES = {
   },
   twilight: {
     name: "Twilight",
-    main: "#9c78d6",
-    dark: "#5c3d91",
+    main: "#7c4eb5",
+    dark: "#4a2278",
     userName: "忘れたくない人",
     background: `${A}theme_bg_twilight.png`,
     profile: `${A}profile_theme_bg_twilight.png`,
@@ -47,6 +47,7 @@ const TRANSLATIONS = {
     theme: "Theme",
     theme_hint: "Pick your theme",
     your_name: "Your name",
+    swap_body: "Swap",
     sec_color: "Sec. color",
     main_color: "Main color",
     profile_bg: "Profile Background",
@@ -108,6 +109,7 @@ const TRANSLATIONS = {
     calling: "Calling...",
     connected: "Connected",
     end_call: "End call",
+    call_ended: "Call ended",
     mute: "Mute",
     speaker: "Speaker",
     replay_voice: "Replay audio",
@@ -158,6 +160,7 @@ const TRANSLATIONS = {
     theme: "テーマ",
     theme_hint: "テーマを選択",
     your_name: "名前",
+    swap_body: "入れ替わり",
     sec_color: "サブカラー",
     main_color: "メインカラー",
     profile_bg: "プロフィールの背景",
@@ -219,6 +222,7 @@ const TRANSLATIONS = {
     calling: "発信中...",
     connected: "通話中",
     end_call: "通話終了",
+    call_ended: "通話終了",
     mute: "消音",
     speaker: "スピーカー",
     replay_voice: "もう一度聞く",
@@ -555,6 +559,18 @@ function App() {
 
   }, [data.theme]);
 
+  const handleBodySwap = useCallback(() => {
+    const nextTheme = data.theme === "taki" ? "mitsuha" : "taki";
+    triggerOverlay(nextTheme);
+    setTimeout(() => {
+      setData(prev => ({
+        ...prev,
+        theme: nextTheme,
+        userName: THEMES[nextTheme].userName
+      }));
+    }, 600);
+  }, [data.theme, triggerOverlay, setData]);
+
   const animatedSetScreen = useCallback((next, direction = "forward") => {
     const current = screenRef.current;
     if (next === current) return;
@@ -664,8 +680,8 @@ function App() {
         };
       case "twilight":
         return {
-          light: "rgba(156, 120, 214, 0.45)",
-          shadow: "rgba(156, 120, 214, 0.18)"
+          light: "rgba(124, 78, 181, 0.45)",
+          shadow: "rgba(124, 78, 181, 0.18)"
         };
       default: // taki
         return {
@@ -747,7 +763,6 @@ function App() {
             expectedPin={data.password}
             onComplete={() => {
               setAppUnlocked(true);
-              triggerOverlay(data.theme);
             }}
           />
         ) : (
@@ -784,6 +799,7 @@ function App() {
                         t={t}
                         showConfirm={showConfirm}
                         showPrompt={showPrompt}
+                        onBodySwap={handleBodySwap}
                       />
                     );
                   case "diary":
@@ -1174,7 +1190,7 @@ function StatusBattery({ percent, charging }) {
   );
 }
 
-function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, getTopicCount, t, showConfirm, showPrompt }) {
+function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, getTopicCount, t, showConfirm, showPrompt, onBodySwap }) {
   const [query, setQuery] = useState("");
   const topics = data.topics.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
 
@@ -1200,10 +1216,16 @@ function Home({ data, setData, openTopic, openSettings, editMode, setEditMode, g
 
   return (
     <main className="screen home-screen">
-      <button className="profile-header" onClick={openSettings}>
-        <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
-        <span className="profile-name">{data.userName}</span>
-      </button>
+      <div className="profile-header-container">
+        <button className="profile-header" onClick={openSettings} aria-label={t("settings_btn")}>
+          <span className="profile-photo"><Icon name="ic_person_picture_default.png" /></span>
+          <span className="profile-name">{data.userName}</span>
+        </button>
+        <button className="body-swap-btn" onClick={onBodySwap} title={t("swap_body")}>
+          <Icon name="ic_memo_swap_vert_black_24dp.png" className="swap-icon" />
+          <span>{t("swap_body")}</span>
+        </button>
+      </div>
       <FlatList
         className="topic-list"
         data={topics}
@@ -1573,19 +1595,32 @@ function Calendar({ entries, openEntry, t, currentLang }) {
 const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
   const ref = useRef(null);
 
+  const adjustHeight = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+
   useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = "auto";
-      ref.current.style.height = ref.current.scrollHeight + "px";
-    }
-  }, [value]);
+    adjustHeight();
+    const t1 = setTimeout(adjustHeight, 50);
+    const t2 = setTimeout(adjustHeight, 350);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [value, adjustHeight]);
 
   return (
     <textarea
       ref={ref}
       value={value}
       onChange={onChange}
-      onFocus={onFocus}
+      onFocus={(e) => {
+        if (onFocus) onFocus(e);
+        adjustHeight();
+      }}
       onBlur={onBlur}
       placeholder={placeholder}
       rows={1}
@@ -1594,12 +1629,9 @@ const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
         border: "none",
         outline: "none",
         resize: "none",
-        fontFamily: "inherit",
-        fontSize: "15px",
-        padding: "8px",
         overflow: "hidden",
         background: "transparent",
-        minHeight: "45px"
+        minHeight: "28px"
       }}
     />
   );
@@ -1869,7 +1901,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
           <label><Icon name={`ic_mood_${draft.mood}.png`} /><select value={draft.mood} onChange={(event) => update("mood", event.target.value)}>{["happy", "soso", "unhappy"].map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
         
-        <div className="editor-content-blocks" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px 0' }}>
+        <div className="editor-content-blocks" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '0' }}>
           {items.map((item, index) => {
             if (item.type === "text") {
               return (
@@ -2127,6 +2159,37 @@ function parseVtt(text) {
     .filter(Boolean);
 }
 
+function playEndCallBeep() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    const playBeep = (startTime) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(650, startTime);
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.12, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(startTime);
+      osc.stop(startTime + 0.2);
+    };
+    
+    playBeep(ctx.currentTime);
+    playBeep(ctx.currentTime + 0.2);
+  } catch (e) {
+    console.error("Failed to play end call beep", e);
+  }
+}
+
 function FakeCallScreen({ contact, close, t }) {
   const [phase, setPhase] = useState("calling");
   const [seconds, setSeconds] = useState(0);
@@ -2136,6 +2199,7 @@ function FakeCallScreen({ contact, close, t }) {
   const [subtitleCues, setSubtitleCues] = useState([]);
   const [activeCaption, setActiveCaption] = useState([]);
   const connectTimerRef = useRef(null);
+  const endCallTimerRef = useRef(null);
   const audioRef = useRef(null);
 
   const isMitsuha = /三葉|mitsuha/i.test(contact.name);
@@ -2211,14 +2275,30 @@ function FakeCallScreen({ contact, close, t }) {
     const audio = audioRef.current;
     return () => {
       audio?.pause();
+      if (endCallTimerRef.current) {
+        window.clearTimeout(endCallTimerRef.current);
+      }
     };
   }, []);
 
-  const endCall = () => {
-    window.clearTimeout(connectTimerRef.current);
-    audioRef.current?.pause();
-    close();
-  };
+  const endCall = useCallback(() => {
+    setPhase((prevPhase) => {
+      if (prevPhase === "ended") return prevPhase;
+      
+      window.clearTimeout(connectTimerRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      playEndCallBeep();
+      
+      endCallTimerRef.current = window.setTimeout(() => {
+        close();
+      }, 1500);
+      
+      return "ended";
+    });
+  }, [close]);
 
   const duration = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
@@ -2243,7 +2323,7 @@ function FakeCallScreen({ contact, close, t }) {
       <div className="call-contact">
         <span className="call-avatar"><Icon name="ic_person_picture_default.png" /></span>
         <h2>{contact.name}</h2>
-        <p>{phase === "calling" ? t("calling") : `${t("connected")} · ${duration}`}</p>
+        <p>{phase === "calling" ? t("calling") : phase === "ended" ? t("call_ended") : `${t("connected")} · ${duration}`}</p>
       </div>
       {phase === "connected" && (
         <div className="call-dialogue" aria-live="polite">
@@ -2256,20 +2336,20 @@ function FakeCallScreen({ contact, close, t }) {
         </div>
       )}
       <div className="call-controls">
-        <button className={muted ? "active" : ""} onClick={() => setMuted((value) => !value)} aria-pressed={muted}>
+        <button className={muted ? "active" : ""} onClick={() => setMuted((value) => !value)} aria-pressed={muted} disabled={phase === "ended"}>
           <CallMicrophoneIcon muted={muted} />
           <span>{t("mute")}</span>
         </button>
-        <button className={speaker ? "active" : ""} onClick={() => setSpeaker((value) => !value)} aria-pressed={speaker}>
+        <button className={speaker ? "active" : ""} onClick={() => setSpeaker((value) => !value)} aria-pressed={speaker} disabled={phase === "ended"}>
           <CallSpeakerIcon />
           <span>{t("speaker")}</span>
         </button>
-        <button onClick={playAudio} disabled={phase !== "connected"}>
+        <button onClick={playAudio} disabled={phase !== "connected" || phase === "ended"}>
           <CallReplayIcon />
           <span>{t("replay_voice")}</span>
         </button>
       </div>
-      <button className="call-end" onClick={endCall} aria-label={t("end_call")}>
+      <button className="call-end" onClick={endCall} aria-label={t("end_call")} disabled={phase === "ended"} style={phase === "ended" ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
         <CallPhoneIcon />
       </button>
     </section>
@@ -2297,15 +2377,16 @@ function CallSpeakerIcon() {
 function CallReplayIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 8V4l3 3a7 7 0 1 1-2 8M8 7h-4" />
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
     </svg>
   );
 }
 
 function CallPhoneIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4.75 16.25c4.15-4.35 10.35-4.35 14.5 0" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ fill: 'currentColor', stroke: 'none' }}>
+      <path d="M12 9c-2.33 0-4.51.52-6.46 1.45-.6.28-.97.86-.97 1.52 0 .88.72 1.6 1.6 1.6.49 0 .93-.22 1.22-.57L9.3 11c.77-.32 1.63-.5 2.7-.5s1.93.18 2.7.5l1.91 1.91c.29.35.73.57 1.22.57.88 0 1.6-.72 1.6-1.6 0-.66-.37-1.24-.97-1.52C16.51 9.52 14.33 9 12 9z" />
     </svg>
   );
 }

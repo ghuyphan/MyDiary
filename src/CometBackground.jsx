@@ -138,10 +138,13 @@ export default function CometBackground({ active = true, burstMode = false, spee
         this.color = Math.random() > 0.5 ? "#4da6ff" : "#ff6699";
         this.active = true;
         this.trail = [];
+        // Tiamat split properties
+        this.isTiamat = Math.random() < 0.4; // 40% chance to be a splitting Tiamat comet
+        this.hasSplit = false;
       }
 
       update() {
-        if (!this.active) return;
+        if (!this.active) return null;
 
         this.trail.push(new TrailParticle(this.x, this.y, this.color, this.size * 0.8));
         if (this.trail.length > 25) {
@@ -150,6 +153,36 @@ export default function CometBackground({ active = true, burstMode = false, spee
 
         this.x += this.speedX;
         this.y += this.speedY;
+
+        let fragment = null;
+        if (this.isTiamat && !this.hasSplit && this.y > height * 0.35) {
+          this.hasSplit = true;
+          // Spawn a child fragment
+          fragment = new Comet();
+          fragment.isTiamat = false;
+          fragment.hasSplit = true;
+          fragment.x = this.x;
+          fragment.y = this.y;
+          fragment.size = this.size * 0.85;
+          // Fragment gets the opposite color
+          fragment.color = this.color === "#4da6ff" ? "#ff6699" : "#4da6ff";
+          
+          // Split angle drift
+          const driftAngle = 0.08 + Math.random() * 0.08;
+          
+          // Parent and child drift in opposite directions
+          const parentAngle = this.angle + driftAngle * 0.5;
+          const childAngle = this.angle - driftAngle * 1.2;
+          const speedVal = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
+          
+          this.angle = parentAngle;
+          this.speedX = Math.cos(parentAngle) * speedVal;
+          this.speedY = Math.sin(parentAngle) * speedVal;
+          
+          fragment.angle = childAngle;
+          fragment.speedX = Math.cos(childAngle) * speedVal * 0.95;
+          fragment.speedY = Math.sin(childAngle) * speedVal * 0.95;
+        }
 
         if (Math.random() < 0.008 && this.trail.length > 8) {
           const splitColor = this.color === "#4da6ff" ? "#ff6699" : "#4da6ff";
@@ -162,6 +195,8 @@ export default function CometBackground({ active = true, burstMode = false, spee
 
         this.trail.forEach((p) => p.update());
         this.trail = this.trail.filter((p) => p.alpha > 0);
+
+        return fragment;
       }
 
       draw() {
@@ -227,7 +262,17 @@ export default function CometBackground({ active = true, burstMode = false, spee
       ctx.clearRect(0, 0, width, height);
 
       stars.forEach((s) => { s.update(); s.draw(); });
-      comets.forEach((c) => { c.update(); c.draw(); });
+      
+      const fragments = [];
+      comets.forEach((c) => {
+        const frag = c.update();
+        if (frag) fragments.push(frag);
+        c.draw();
+      });
+      if (fragments.length > 0) {
+        comets.push(...fragments);
+      }
+      
       comets = comets.filter((c) => c.active || c.trail.length > 0);
 
       if (burstMode) {

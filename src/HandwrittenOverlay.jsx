@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CometBackground from "./CometBackground";
 
 const PHRASES = {
@@ -20,6 +20,11 @@ export default function HandwrittenOverlay({ theme = "taki", active = false, onC
   const [visible, setVisible] = useState(false);
   const [phrase, setPhrase] = useState({ jp: "", en: "" });
   const [renderedChars, setRenderedChars] = useState([]);
+
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!active) {
@@ -48,7 +53,7 @@ export default function HandwrittenOverlay({ theme = "taki", active = false, onC
           setVisible(false);
           // Allow fade-out animation to complete (400ms) before onComplete
           setTimeout(() => {
-            if (onComplete) onComplete();
+            if (onCompleteRef.current) onCompleteRef.current();
           }, 400);
         }, 1500);
       }
@@ -57,7 +62,7 @@ export default function HandwrittenOverlay({ theme = "taki", active = false, onC
     return () => {
       clearInterval(interval);
     };
-  }, [active, theme, onComplete]);
+  }, [active, theme]);
 
   if (!active || !visible) return null;
 
