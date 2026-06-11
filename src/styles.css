@@ -384,14 +384,26 @@ button { border: 0; cursor: pointer; }
 .entry-card-top-icons {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
+  margin-right: 20px;
 }
 
 .entry-card-icon {
   width: 14px;
   height: 14px;
-  object-fit: contain;
-  filter: invert(77%) sepia(22%) saturate(840%) hue-rotate(134deg) brightness(92%) contrast(88%);
+  color: var(--theme-dark);
+}
+
+.entry-card-icon[style*="ic_weather"],
+.entry-card-icon[src*="ic_weather"] {
+  width: 16px;
+  height: 16px;
+}
+
+.entry-card-icon[style*="ic_mood"],
+.entry-card-icon[src*="ic_mood"] {
+  width: 11px;
+  height: 11px;
 }
 
 .bookmark-button {
@@ -401,21 +413,21 @@ button { border: 0; cursor: pointer; }
   right: 7px;
   width: 22px;
   height: 22px;
-  padding: 4px;
+  padding: 3px;
   display: grid;
   place-items: center;
   background: transparent;
 }
 
 .bookmark-icon {
-  width: 12px;
-  height: 12px;
+  width: 15px;
+  height: 15px;
   opacity: .45;
 }
 
 .bookmark-button.active .bookmark-icon {
   opacity: 1;
-  filter: sepia(1) saturate(5) hue-rotate(345deg);
+  color: #ffb300;
 }
 
 .bookmark-button:focus-visible {
@@ -426,8 +438,7 @@ button { border: 0; cursor: pointer; }
 .entry-card-attach-icon {
   width: 15px;
   height: 15px;
-  object-fit: contain;
-  filter: invert(77%) sepia(22%) saturate(840%) hue-rotate(134deg) brightness(92%) contrast(88%);
+  color: var(--theme-dark);
   margin-right: -1px;
 }
 
@@ -617,7 +628,7 @@ button { border: 0; cursor: pointer; }
   color: var(--theme-dark);
   background: transparent;
 }
-.editor-title-row label { position: relative; display: grid; place-items: center; }.editor-title-row label .icon { width: 25px; height: 25px; }.editor-title-row select { position: absolute; inset: 0; opacity: 0; }
+.editor-title-row label { position: relative; display: grid; place-items: center; }.editor-title-row label .icon { width: 25px; height: 25px; color: var(--theme-dark); }.editor-title-row label .icon[style*="ic_weather"],.editor-title-row label .icon[src*="ic_weather"] { width: 28px; height: 28px; }.editor-title-row label .icon[style*="ic_mood"],.editor-title-row label .icon[src*="ic_mood"] { width: 20px; height: 20px; }.editor-title-row select { position: absolute; inset: 0; opacity: 0; }
 .editor-content-blocks {
   background-image: linear-gradient(to bottom, transparent 27px, var(--theme-light) 27px, var(--theme-light) 28px);
   background-size: 100% 28px;
@@ -674,7 +685,7 @@ button { border: 0; cursor: pointer; }
 .call-dialogue b { color: rgba(255,255,255,.68); font-size: 10px; font-weight: 700; letter-spacing: .04em; padding-top: 2px; }
 .call-dialogue span { color: #fff; }
 .call-dialogue small { color: #ffd5cb; font-size: 10px; }
-.call-controls { width: min(330px, calc(100% - 40px)); margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.call-controls { width: min(330px, calc(100% - 40px)); margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 24px; }
 .call-controls button { min-width: 0; display: grid; justify-items: center; gap: 7px; color: #fff; background: transparent; font-size: 10px; }
 .call-controls button svg { width: 58px; height: 58px; padding: 16px; overflow: visible; border-radius: 50%; background: rgba(255,255,255,.16); fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: background .15s ease, transform .15s ease; }
 .call-controls button.active svg { color: #244d61; background: rgba(255,255,255,.9); }

@@ -127,7 +127,10 @@ const TRANSLATIONS = {
     end_call: "End call",
     call_ended: "Call ended",
     mute: "Mute",
+    keypad: "Keypad",
     speaker: "Speaker",
+    add_call: "Add call",
+    facetime: "FaceTime",
     replay_voice: "Replay audio",
     voice_unavailable: "Licensed Mitsuha call audio has not been installed.",
     import_failed: "Import failed",
@@ -242,7 +245,10 @@ const TRANSLATIONS = {
     end_call: "通話終了",
     call_ended: "通話終了",
     mute: "消音",
+    keypad: "キーパッド",
     speaker: "スピーカー",
+    add_call: "通話を追加",
+    facetime: "FaceTime",
     replay_voice: "もう一度聞く",
     voice_unavailable: "許可された三葉の通話音声がまだ追加されていません。",
     import_failed: "インポートに失敗しました",
@@ -347,7 +353,26 @@ const assetNames = [
   "theme_bg_mitsuha.png", "theme_bg_taki.png", "diary_calendar_arr_shadow.png",
 ];
 
-function Icon({ name, alt = "", className = "", style = {}, ...props }) {
+function Icon({ name, alt = "", className = "", style = {}, tint = false, ...props }) {
+  if (tint) {
+    const iconUrl = `${A}${name}`;
+    const combinedStyle = {
+      display: "inline-block",
+      backgroundColor: "currentColor",
+      WebkitMask: `url(${iconUrl}) no-repeat center/contain`,
+      mask: `url(${iconUrl}) no-repeat center/contain`,
+      ...style
+    };
+    return (
+      <span
+        className={`icon ${className}`}
+        style={combinedStyle}
+        role="img"
+        aria-label={alt || name}
+        {...props}
+      />
+    );
+  }
   return <img className={`icon ${className}`} src={`${A}${name}`} alt={alt} style={style} {...props} />;
 }
 
@@ -1471,11 +1496,11 @@ const EntryCard = React.memo(function EntryCard({ entry, openEntry, toggleBookma
         </div>
         <div className="entry-card-icons">
           <div className="entry-card-top-icons">
-            <Icon name={`ic_weather_${entry.weather}.png`} className="entry-card-icon" />
-            <Icon name={`ic_mood_${entry.mood}.png`} className="entry-card-icon" />
+            <Icon name={`ic_weather_${entry.weather}.png`} className="entry-card-icon" tint />
+            <Icon name={`ic_mood_${entry.mood}.png`} className="entry-card-icon" tint />
           </div>
           {entry.photos && entry.photos.length > 0 && (
-            <Icon name="ic_attach.png" className="entry-card-attach-icon" />
+            <Icon name="ic_attach.png" className="entry-card-attach-icon" tint />
           )}
         </div>
       </button>
@@ -1485,7 +1510,7 @@ const EntryCard = React.memo(function EntryCard({ entry, openEntry, toggleBookma
         aria-pressed={Boolean(entry.bookmarked)}
         onClick={() => toggleBookmark?.(entry.id)}
       >
-        <Icon name="ic_bookmark_border.png" className="entry-card-icon bookmark-icon" />
+        <Icon name="ic_bookmark_border.png" className="entry-card-icon bookmark-icon" tint />
       </button>
     </div>
   );
@@ -2092,8 +2117,8 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
       <div className="editor-sheet">
         <div className="editor-title-row">
           <input value={draft.title} onChange={(event) => update("title", event.target.value)} placeholder={t("diary_title_hint")} />
-          <label><Icon name={`ic_weather_${draft.weather}.png`} /><select value={draft.weather} onChange={(event) => update("weather", event.target.value)}>{["sunny", "cloud", "windy", "rainy", "snowy", "foggy"].map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label><Icon name={`ic_mood_${draft.mood}.png`} /><select value={draft.mood} onChange={(event) => update("mood", event.target.value)}>{["happy", "soso", "unhappy"].map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label><Icon name={`ic_weather_${draft.weather}.png`} tint /><select value={draft.weather} onChange={(event) => update("weather", event.target.value)}>{["sunny", "cloud", "windy", "rainy", "snowy", "foggy"].map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label><Icon name={`ic_mood_${draft.mood}.png`} tint /><select value={draft.mood} onChange={(event) => update("mood", event.target.value)}>{["happy", "soso", "unhappy"].map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
         
         <div className="editor-content-blocks" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '0' }}>
@@ -2537,9 +2562,21 @@ function FakeCallScreen({ contact, close, t }) {
           <CallMicrophoneIcon muted={muted} />
           <span>{t("mute")}</span>
         </button>
+        <button className="disabled-btn" disabled={true}>
+          <CallKeypadIcon />
+          <span>{t("keypad")}</span>
+        </button>
         <button className={speaker ? "active" : ""} onClick={() => setSpeaker((value) => !value)} aria-pressed={speaker} disabled={phase === "ended"}>
           <CallSpeakerIcon />
           <span>{t("speaker")}</span>
+        </button>
+        <button className="disabled-btn" disabled={true}>
+          <CallAddCallIcon />
+          <span>{t("add_call")}</span>
+        </button>
+        <button className="disabled-btn" disabled={true}>
+          <CallFaceTimeIcon />
+          <span>{t("facetime")}</span>
         </button>
         <button onClick={playAudio} disabled={phase !== "connected" || phase === "ended"}>
           <CallReplayIcon />
@@ -2584,6 +2621,39 @@ function CallPhoneIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" style={{ fill: 'currentColor', stroke: 'none' }}>
       <path d="M12 9c-2.33 0-4.51.52-6.46 1.45-.6.28-.97.86-.97 1.52 0 .88.72 1.6 1.6 1.6.49 0 .93-.22 1.22-.57L9.3 11c.77-.32 1.63-.5 2.7-.5s1.93.18 2.7.5l1.91 1.91c.29.35.73.57 1.22.57.88 0 1.6-.72 1.6-1.6 0-.66-.37-1.24-.97-1.52C16.51 9.52 14.33 9 12 9z" />
+    </svg>
+  );
+}
+
+function CallKeypadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="5" cy="5" r="1.5" />
+      <circle cx="12" cy="5" r="1.5" />
+      <circle cx="19" cy="5" r="1.5" />
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+      <circle cx="5" cy="19" r="1.5" />
+      <circle cx="12" cy="19" r="1.5" />
+      <circle cx="19" cy="19" r="1.5" />
+    </svg>
+  );
+}
+
+function CallAddCallIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function CallFaceTimeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 10v-3a1.5 1.5 0 0 0-1.5-1.5h-9A1.5 1.5 0 0 0 3 7v10a1.5 1.5 0 0 0 1.5 1.5h9a1.5 1.5 0 0 0 1.5-1.5v-3l5 3.5v-11z" />
     </svg>
   );
 }
