@@ -630,8 +630,6 @@ button { border: 0; cursor: pointer; }
 }
 .editor-title-row label { position: relative; display: grid; place-items: center; }.editor-title-row label .icon { width: 25px; height: 25px; color: var(--theme-dark); }.editor-title-row label .icon[style*="ic_weather"],.editor-title-row label .icon[src*="ic_weather"] { width: 28px; height: 28px; }.editor-title-row label .icon[style*="ic_mood"],.editor-title-row label .icon[src*="ic_mood"] { width: 20px; height: 20px; }.editor-title-row select { position: absolute; inset: 0; opacity: 0; }
 .editor-content-blocks {
-  background-image: linear-gradient(to bottom, transparent 27px, var(--theme-light) 27px, var(--theme-light) 28px);
-  background-size: 100% 28px;
   line-height: 28px;
   padding-bottom: 28px;
 }
@@ -642,6 +640,8 @@ button { border: 0; cursor: pointer; }
   resize: none;
   font-size: 16px;
   background: transparent;
+  background-image: linear-gradient(to bottom, transparent 27px, var(--theme-light) 27px, var(--theme-light) 28px);
+  background-size: 100% 28px;
   padding: 0 8px;
   margin: 0;
   box-sizing: border-box;

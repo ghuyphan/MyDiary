@@ -1783,7 +1783,7 @@ const TextareaBlock = ({ value, onChange, onFocus, onBlur, placeholder }) => {
         outline: "none",
         resize: "none",
         overflow: "hidden",
-        background: "transparent",
+        backgroundColor: "transparent",
         minHeight: "28px"
       }}
     />
@@ -1863,12 +1863,41 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
     };
   }, [currentLang, draftKey, entry, showConfirm]);
 
+  const hasUnsavedChanges = (currentDraft, currentItems) => {
+    if (!entry) {
+      const emptyDraft = (currentDraft.title || "").trim() === "" &&
+                         currentDraft.mood === "happy" &&
+                         currentDraft.weather === "sunny" &&
+                         currentDraft.location === "No Location" &&
+                         (currentDraft.photos || []).length === 0;
+      const emptyItems = currentItems.length === 1 &&
+                         currentItems[0].type === "text" &&
+                         (currentItems[0].value || "").trim() === "";
+      return !(emptyDraft && emptyItems);
+    }
+
+    if (currentDraft.title !== (entry.title || "")) return true;
+    if (currentDraft.mood !== (entry.mood || "happy")) return true;
+    if (currentDraft.weather !== (entry.weather || "sunny")) return true;
+    if (currentDraft.location !== (entry.location || "No Location")) return true;
+    if (currentDraft.date !== entry.date) return true;
+    if (currentDraft.time !== entry.time) return true;
+
+    const entryItems = entry.items || [{ id: "text_0", type: "text", value: entry.content || "" }];
+    if (currentItems.length !== entryItems.length) return true;
+    for (let i = 0; i < currentItems.length; i++) {
+      if (currentItems[i].type !== entryItems[i].type) return true;
+      if (currentItems[i].value !== entryItems[i].value) return true;
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     if (!draftReady) return undefined;
-    const hasContent = (draft.title || "").trim()
-      || items.some((item) => item.type === "photo" || (item.type === "text" && item.value.trim()));
+    const shouldSave = hasUnsavedChanges(draft, items);
     const handler = window.setTimeout(() => {
-      const action = hasContent
+      const action = shouldSave
         ? saveDiaryDraft(draftKey, { draft, items })
         : deleteDiaryDraft(draftKey);
       action.catch((error) => console.error("Failed to save diary draft", error));
@@ -1882,9 +1911,8 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
       if (document.visibilityState !== "hidden") return;
       const currentDraft = draftRef.current;
       const currentItems = itemsRef.current;
-      const hasContent = (currentDraft.title || "").trim()
-        || currentItems.some((item) => item.type === "photo" || (item.type === "text" && item.value.trim()));
-      if (hasContent) {
+      const shouldSave = hasUnsavedChanges(currentDraft, currentItems);
+      if (shouldSave) {
         saveDiaryDraft(draftKey, { draft: currentDraft, items: currentItems }).catch(() => {});
       }
     };
@@ -1959,6 +1987,7 @@ function DiaryEditor({ entry, data, setData, close, t, currentLang, showConfirm,
       await deleteDiaryDraft(draftKey);
       setDraft(createDraft());
       setItems([{ id: "text_0", type: "text", value: "" }]);
+      close();
     }
   };
 
